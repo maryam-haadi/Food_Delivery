@@ -1,7 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from django.core.validators import RegexValidator
-
 class MyUserManager(BaseUserManager):
     def create_user(self,name,last_name,phone_number,password=None,email=None):
         """
@@ -28,7 +27,7 @@ class MyUserManager(BaseUserManager):
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, email,name,last_name,phone_number,password=None):
+    def create_superuser(self,name,last_name,phone_number,password=None,email=None):
         """
         Creates and saves a superuser with the given email, date of
         birth and password.
@@ -70,6 +69,8 @@ class User(AbstractBaseUser):
     is_admin = models.BooleanField(default=False,blank=True)
     last_login = models.DateTimeField(blank=True,null=True)
     is_verified = models.BooleanField(default=False,blank=True)
+    is_owner = models.BooleanField(default=False,blank=True)
+    is_customer = models.BooleanField(default=False,blank=True)
     otp = models.CharField(max_length=6, blank=True)
     otp_expire_time = models.DateTimeField(blank=True, null=True)
 
@@ -106,5 +107,39 @@ class Address(models.Model):
     longitude = models.FloatField()
 
 class Customer(models.Model):
-    user = models.OneToOneField(User,on_delete=models.CASCADE,related_name='customers')
-    address = models.ManyToManyField(Address,related_name='customer',blank=True)
+    user = models.OneToOneField('User',on_delete=models.CASCADE,related_name='customers')
+    address = models.ManyToManyField('Address',related_name='customer',blank=True)
+
+class StoreType(models.Model):
+    choice_list =[
+        ('cofe','C'),
+        ('restaurant','R')
+    ]
+
+    storetype_name = models.CharField(max_length=20,choices=choice_list,default='restaurant')
+    storetype_desc = models.CharField(max_length=255,blank=True)
+
+class Owner(models.Model):
+    user = models.OneToOneField('User',on_delete=models.CASCADE,related_name='owner',blank=True)
+    owner_address = models.CharField(max_length=255,blank=False)
+    city = models.CharField(max_length=200)
+    stores_name = models.CharField(max_length=200)
+    type = models.ForeignKey('StoreType',on_delete=models.PROTECT,related_name='owners')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

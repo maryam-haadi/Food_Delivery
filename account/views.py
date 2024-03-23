@@ -8,6 +8,7 @@ from django.utils import timezone
 from datetime import timedelta
 from rest_framework import status
 from rest_framework import generics
+from rest_framework.viewsets import ModelViewSet
 from .serializers import *
 from .models import *
 import random
@@ -93,7 +94,7 @@ class UserLoginView(APIView):
             if user is not None:
                 otp_code=generate_otp(6)
                 user.otp=otp_code
-                user.otp_expire_time=timezone.now() + timedelta(minutes=8)
+                user.otp_expire_time=timezone.now() + timedelta(minutes=3)
                 user.save()
 
                 message=f'your verification code is :{otp_code}'
@@ -113,6 +114,53 @@ class UserLoginView(APIView):
 
             else:
                 return Response({"error":"invalid credentials"}, status=status.HTTP_404_NOT_FOUND)
+
+
+
+
+
+class OwnerRegisterViews(ModelViewSet):
+    queryset = Owner.objects.all()
+    serializer_class = OwnerRegisterSerializer
+
+
+    def create(self, request, *args, **kwargs):
+        serializer = OwnerRegisterSerializer(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            owner = serializer.save()
+            otp_code = generate_otp(6)
+            owner.user.otp = otp_code
+            owner.user.otp_expire_time = timezone.now() + timedelta(minutes=8)
+            owner.user.save()
+            message = f'your verification code is :{otp_code}'
+            payload = {
+                'username': '989116968310',
+                'password': 'E8Y!4',
+                'to':serializer.data['phone_number'],
+                'text':message
+            }
+            response = requests.post(url, data=payload)
+            print(response.json())
+
+            if response.status_code == 200:
+                return Response({'message': 'message send successfully'},status=status.HTTP_200_OK)
+            else:
+                return Response({'message': 'message unsend'}, status=status.HTTP_400_BAD_REQUEST)
+
+        else:
+            return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
