@@ -8,7 +8,8 @@ from django.utils import timezone
 from datetime import timedelta
 from rest_framework import status
 from rest_framework import generics
-from rest_framework.viewsets import ModelViewSet
+from rest_framework.viewsets import ModelViewSet,GenericViewSet
+from rest_framework import mixins
 from .serializers import *
 from .models import *
 import random
@@ -19,17 +20,49 @@ url = "https://rest.payamak-panel.com/api/SendSMS/SendSMS"
 def generate_otp(n=6):
     return "".join(map(str, random.sample(range(0, 10), n)))
 
+class UserRegisterView(ModelViewSet):
+    http_method_names = ['get','post','put']
 
-class UserRegisterView(APIView):
-    permission_classes = [AllowAny]
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_authenticated:
+            return User.objects.all().filter(id=user.id,is_customer=True)
+        return None
 
-    def post(self,request):
+
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return UserRegisterSerializer
+        elif self.request.method == 'PUT':
+            return UserUpdateSerializer
+        elif self.request.method == 'GET':
+            return UserProfileSerializer
+        else:
+            return UserProfileSerializer
+
+
+
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [AllowAny()]
+        elif self.request.method == 'GET':
+            return [IsAuthenticated()]
+        elif self.request.method == 'PUT':
+            return [IsAuthenticated()]
+        else:
+            return [AllowAny()]
+
+
+    def create(self, request, *args, **kwargs):
+
         serializer = UserRegisterSerializer(data=request.data)
         if serializer.is_valid(raise_exception=True):
             user = serializer.save()
             otp_code = generate_otp(6)
             user.otp = otp_code
             user.otp_expire_time = timezone.now() + timedelta(minutes=8)
+            user.is_customer = True
             user.save()
             message = f'your verification code is :{otp_code}'
             payload = {
@@ -51,15 +84,21 @@ class UserRegisterView(APIView):
 
 
 
-class Verify(APIView):
+
+
+
+class VerifyView(mixins.CreateModelMixin,GenericViewSet):
+    http_method_names = ['post']
+    serializer_class = UserVerifySerializer
+    queryset = User.objects.all().filter(is_verified=True)
     permission_classes = [AllowAny]
-    def post(self,request):
+
+    def create(self, request, *args, **kwargs):
+
         serializer = UserVerifySerializer(data=request.data)
         if serializer.is_valid(raise_exception=True):
-            print(serializer.data['phone_number'])
             otp = serializer.data['otp']
             phone_number = serializer.data['phone_number']
-            u=User.objects.get(phone_number=phone_number)
             user=authenticate(request,phone_number=phone_number)
             if user is not None:
                 if user.otp == otp and user.otp_expire_time is not None and user.otp_expire_time > timezone.now():
@@ -70,6 +109,7 @@ class Verify(APIView):
                     user.save()
 
                     user.last_login=timezone.now()
+                    user.is_verified = True
                     user.save()
                     return Response({'refresh': str(refresh),'access': str(refresh.access_token),},
                     status=status.HTTP_200_OK)
@@ -83,21 +123,33 @@ class Verify(APIView):
                 return Response({'detail':'invalid verification code or credentials'},status=status.HTTP_401_UNAUTHORIZED)
 
 
-class UserLoginView(APIView):
-    permission_classes = [AllowAny]
 
-    def post(self,request):
-        serializer=UserLoginSerializer(data=request.data)
+
+
+
+
+
+
+class LoginView(GenericViewSet,mixins.CreateModelMixin):
+    http_method_names = ['post']
+    permission_classes = [AllowAny]
+    serializer_class = UserLoginSerializer
+    queryset = User.objects.all()
+
+    def create(self, request, *args, **kwargs):
+        serializer = UserLoginSerializer(data=request.data)
         if serializer.is_valid(raise_exception=True):
-            phone_number=serializer.data['phone_number']
-            user = authenticate(request,phone_number=phone_number)
+            phone_number = serializer.data['phone_number']
+            user = authenticate(request, phone_number=phone_number)
             if user is not None:
-                otp_code=generate_otp(6)
-                user.otp=otp_code
-                user.otp_expire_time=timezone.now() + timedelta(minutes=3)
+                otp_code = generate_otp(6)
+                print(otp_code)
+                user.otp = otp_code
+                user.otp_expire_time = timezone.now() + timedelta(minutes=3)
+                user.is_verified = True
                 user.save()
 
-                message=f'your verification code is :{otp_code}'
+                message = f'your verification code is :{otp_code}'
                 payload = {
                     'username': '989116968310',
                     'password': 'E8Y!4',
@@ -113,15 +165,43 @@ class UserLoginView(APIView):
                     return Response({'message': 'message unsend'}, status=status.HTTP_400_BAD_REQUEST)
 
             else:
-                return Response({"error":"invalid credentials"}, status=status.HTTP_404_NOT_FOUND)
+                return Response({"error": "invalid credentials"}, status=status.HTTP_404_NOT_FOUND)
+
+
+
 
 
 
 
 
 class OwnerRegisterViews(ModelViewSet):
-    queryset = Owner.objects.all()
-    serializer_class = OwnerRegisterSerializer
+    http_method_names = ['post','get','put']
+    def get_queryset(self):
+        print(self.request.user.is_authenticated)
+        if self.request.user.is_authenticated:
+            user_id = self.request.user.id
+            return Owner.objects.all().filter(user_id=user_id)
+        else:
+            return None
+
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return OwnerRegisterSerializer
+        elif self.request.method == 'GET':
+            return OwnerProfileSerializer
+        elif self.request.method == 'PUT':
+            return  OwnerUpdateSerializer
+
+
+
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [AllowAny()]
+        elif self.request.method == 'GET':
+            return [IsAuthenticated()]
+        elif self.request.method == 'PUT':
+            return [IsAuthenticated()]
 
 
     def create(self, request, *args, **kwargs):
@@ -149,9 +229,6 @@ class OwnerRegisterViews(ModelViewSet):
 
         else:
             return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
-
-
-
 
 
 

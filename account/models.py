@@ -100,15 +100,8 @@ class User(AbstractBaseUser):
 
 
 
-class Address(models.Model):
-    city = models.CharField(max_length=100)
-    street = models.CharField(max_length=100)
-    latitude = models.FloatField()
-    longitude = models.FloatField()
-
 class Customer(models.Model):
-    user = models.OneToOneField('User',on_delete=models.CASCADE,related_name='customers')
-    address = models.ManyToManyField('Address',related_name='customer',blank=True)
+    user = models.OneToOneField('User',on_delete=models.CASCADE,related_name='customers',blank=True)
 
 class StoreType(models.Model):
     choice_list =[
@@ -120,7 +113,7 @@ class StoreType(models.Model):
     storetype_desc = models.CharField(max_length=255,blank=True)
 
 class Owner(models.Model):
-    user = models.OneToOneField('User',on_delete=models.CASCADE,related_name='owner',blank=True)
+    user = models.OneToOneField(User,on_delete=models.CASCADE,related_name='owner',blank=True)
     owner_address = models.CharField(max_length=255,blank=False)
     city = models.CharField(max_length=200)
     stores_name = models.CharField(max_length=200)

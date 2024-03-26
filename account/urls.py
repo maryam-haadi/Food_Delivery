@@ -8,15 +8,11 @@ from rest_framework_simplejwt.views import (
 
 router = DefaultRouter()
 router.register(r'owner',OwnerRegisterViews, basename='owner')
-
-
-
+router.register(r'verify',VerifyView, basename='verify')
+router.register(r'customer',UserRegisterView, basename='customer')
+router.register(r'login',LoginView, basename='login')
 
 urlpatterns=[
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    path('register/',UserRegisterView.as_view()),
-    path('verify/',Verify.as_view()),
-    path('login/',UserLoginView.as_view()),
-    # path('register_owner/',OwnerRegisterView.as_view()),
     path('',include(router.urls))
 ]
