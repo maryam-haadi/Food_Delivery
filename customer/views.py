@@ -2,7 +2,7 @@ from django.shortcuts import render,get_object_or_404
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.contrib.auth import authenticate
-from rest_framework.permissions import IsAuthenticated,AllowAny
+from rest_framework.permissions import IsAuthenticated,AllowAny,IsAdminUser
 from django.utils import timezone
 from datetime import timedelta
 from rest_framework import status
@@ -12,11 +12,13 @@ from rest_framework import mixins
 from .serializers import *
 from .models import *
 from .permissions import IsCustomer
-# from django.contrib.gis.measure import D
-# from django.contrib.gis.geos import Point
 from rest_framework.decorators import action
+from core.serializers import *
+from account.serializers import *
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters
 # Create your views here.
-from django.db.models import F, Value
+
 class CustomerAddress(ModelViewSet):
     permission_classes = [IsCustomer]
     def get_queryset(self):
@@ -45,25 +47,28 @@ class CustomerAddress(ModelViewSet):
             return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
 
 
-def get_distance(user_lat,user_long,res_lat,res_long):
-
-    earth_radius = 6371
-
-    user_lat = radians(user_lat)
-    user_long = radians(user_long)
-    restaurant_lat = radians(res_lat)
-    restaurant_long = radians(res_long)
-    dlon = restaurant_long - user_long
-    dlat = restaurant_lat - user_lat
-    a=sin(dlat/2)*sin(dlat/2) + cos(user_lat) * cos(restaurant_lat) * sin(dlon/2) *sin(dlon/2)
-    c=2* asin(sqrt(a))
-    distance = earth_radius * c
-    return distance
 
 
 
 
 class RestaurantRangeView(GenericViewSet,mixins.ListModelMixin,mixins.RetrieveModelMixin):
+
+    def get_distance(self,user_lat, user_long, res_lat, res_long):
+
+        earth_radius = 6371
+
+        user_lat = radians(user_lat)
+        user_long = radians(user_long)
+        restaurant_lat = radians(res_lat)
+        restaurant_long = radians(res_long)
+        dlon = restaurant_long - user_long
+        dlat = restaurant_lat - user_lat
+        a = sin(dlat / 2) * sin(dlat / 2) + cos(user_lat) * cos(restaurant_lat) * sin(dlon / 2) * sin(dlon / 2)
+        c = 2 * asin(sqrt(a))
+        distance = earth_radius * c
+        return distance
+
+
 
     queryset = Restaurant.objects.all()
     permission_classes = [IsCustomer]
@@ -83,7 +88,7 @@ class RestaurantRangeView(GenericViewSet,mixins.ListModelMixin,mixins.RetrieveMo
         user_addr=get_object_or_404(Address,id=address_id)
         restaurants = Restaurant.objects.all()
         for restaurant in restaurants:
-            distance =get_distance(user_addr.latitude,user_addr.longitude,
+            distance =self.get_distance(user_addr.latitude,user_addr.longitude,
                                    restaurant.latitude,restaurant.longitude)
             if distance < 5000:
                 nearby_restaurant.append(restaurant)
@@ -93,24 +98,49 @@ class RestaurantRangeView(GenericViewSet,mixins.ListModelMixin,mixins.RetrieveMo
         return Response({"distance":distances,"data":serializer.data})
 
 
+class RestaurantTypeViewset(GenericViewSet,mixins.ListModelMixin,mixins.RetrieveModelMixin):
+    serializer_class = RestaurantListSerializer
+    permission_classes = [IsCustomer]
+    def get_queryset(self):
+        return Restaurant.objects.all().filter(owner__type__storetype_name='restaurant')
+
+
+class CofeTypeViewset(GenericViewSet,mixins.ListModelMixin,mixins.RetrieveModelMixin):
+    serializer_class = RestaurantListSerializer
+    permission_classes = [IsCustomer]
+    def get_queryset(self):
+        return Restaurant.objects.all().filter(owner__type__storetype_name='cofe')
 
 
 
+class RestaurantsCategoryViewset(GenericViewSet,mixins.ListModelMixin,mixins.RetrieveModelMixin):
+    serializer_class = RestaurantListSerializer
+    permission_classes = [IsCustomer]
+    queryset = Restaurant.objects.all()
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['category']
 
 
 
-
-
-
-
-
-
-
-
-class RestaurantListView(GenericViewSet,mixins.ListModelMixin,mixins.RetrieveModelMixin):
+class RestaurantsListView(GenericViewSet,mixins.ListModelMixin,mixins.RetrieveModelMixin):
     queryset = Restaurant.objects.all()
     serializer_class = RestaurantListSerializer
     permission_classes = [IsCustomer]
+
+
+
+class RestaurantFoodsViewset(GenericViewSet,mixins.RetrieveModelMixin,mixins.ListModelMixin):
+    permission_classes = [IsCustomer]
+    serializer_class = FoodShowSerializer
+    filter_backends = [DjangoFilterBackend,filters.SearchFilter]
+    filterset_fields = ['food_category__category_name']
+    search_fields = ['food_category__category_name','name','desc']
+
+    def get_queryset(self):
+        restaurant_id = self.kwargs['res_pk']
+        menu = Menu.objects.all().filter(restaurant_id=restaurant_id).first()
+        return Food.objects.all().filter(menu=menu)
+
 
 
 

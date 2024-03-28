@@ -85,18 +85,12 @@ class MenuShowSerializer(serializers.ModelSerializer):
 
 class FoodSerializer(serializers.ModelSerializer):
 
-    category_name = serializers.CharField(source='food_category.category_name',max_length=200)
-    category_desc = serializers.CharField(source='food_category.category_desc',max_length=255)
     class Meta:
         model = Food
-        fields=['image','category_name','category_desc','name','desc','price']
+        fields=['image','food_category','name','desc','price']
 
     def update(self, instance, validated_data):
-        food_category = instance.food_category
-        food_category.category_name = validated_data['food_category']['category_name']
-        food_category.category_desc = validated_data['food_category']['category_desc']
-        food_category.save()
-        instance.food_category = food_category
+        instance.food_category = validated_data['food_category']
         instance.image = validated_data['image']
         instance.name = validated_data['name']
         instance.desc = validated_data['desc']
@@ -108,10 +102,20 @@ class FoodSerializer(serializers.ModelSerializer):
 class FoodShowSerializer(serializers.ModelSerializer):
 
     category_name = serializers.CharField(source='food_category.category_name',max_length=200)
-    category_desc = serializers.CharField(source='food_category.category_desc',max_length=255)
     class Meta:
         model = Food
-        fields=['id','image','category_name','category_desc','name','desc','price']
+        fields=['id','image','category_name','name','desc','price']
 
 
+
+
+class FoodCategoryRequestPostSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=FoodCategoryRequest
+        fields=['cat_name','cat_desc']
+
+class FoodCategoryRequestShowSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=FoodCategoryRequest
+        fields=['cat_name','cat_desc','admin_approval']
 

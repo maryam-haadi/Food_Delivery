@@ -13,11 +13,35 @@ class IsOwnerRestuarant(BasePermission):
 
         return request.user and request.user.is_authenticated\
             and request.user.is_owner
-class IsMenuCreateRestaurant(BasePermission):
+
+
+
+class IsRestuarantExist(BasePermission):
     def has_permission(self, request, view):
-        return request.user and request.user.is_authenticated and\
-            request.user.is_owner and\
-            Restaurant.objects.all().filter(owner__user=request.user).first() !=None and\
-            Menu.objects.all().filter(restaurant__owner__user=request.user).first() == None
+
+        return request.user and request.user.is_authenticated\
+            and request.user.is_owner and Restaurant.objects.all().filter(owner__user=request.user).first()!=None
+
+
+
+
+
+
+
+
+
+# class IsMenuCreateRestaurant(BasePermission):
+#     def has_permission(self, request, view):
+#         return request.user and request.user.is_authenticated and\
+#             request.user.is_owner and\
+#             Restaurant.objects.all().filter(owner__user=request.user).first() !=None and\
+#             Menu.objects.all().filter(restaurant__owner__user=request.user).first() == None
+#
+# class IsMenuExistRestaurant(BasePermission):
+#     def has_permission(self, request, view):
+#         return request.user and request.user.is_authenticated and\
+#             request.user.is_owner and\
+#             Restaurant.objects.all().filter(owner__user=request.user).first() !=None and\
+#             Menu.objects.all().filter(restaurant__owner__user=request.user).first() != None
 
 

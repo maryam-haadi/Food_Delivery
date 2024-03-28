@@ -1,6 +1,6 @@
 from django.shortcuts import render,get_object_or_404
 from rest_framework.permissions import IsAuthenticated,AllowAny,IsAdminUser
-from .permissions import IsOwnerRestuarant,IsOwnerRestuarantCreate,IsMenuCreateRestaurant
+from .permissions import IsOwnerRestuarant,IsOwnerRestuarantCreate,IsRestuarantExist
 # Create your views here.
 from rest_framework import status
 from rest_framework import mixins
@@ -43,8 +43,9 @@ class RestaurantView(ModelViewSet):
             user = self.request.user
             owner = user.owner
             restaurant = Restaurant.objects.create(owner=owner,**serializer.validated_data)
+            menu = Menu.objects.create(restaurant=restaurant)
             return Response({"message":"create restaurant seccessfully ","data":serializer.data}
-                            ,status=status.HTTP_200_OK)
+                            ,status=status.HTTP_201_CREATED)
         else:
             return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
 
@@ -52,46 +53,16 @@ class RestaurantView(ModelViewSet):
 
 
 
-class MenuViewset(ModelViewSet):
-    def get_queryset(self):
-        user=self.request.user
-        return Menu.objects.filter(restaurant__owner__user=user)
-
-    def get_permissions(self):
-        if self.request.method == 'POST':
-            return [IsMenuCreateRestaurant()]
-        else:
-            return [IsOwnerRestuarant()]
-    def get_serializer_class(self):
-        if self.request.method =='GET':
-            return MenuShowSerializer
-        else:
-            return MenuCreateSerializer
-    def create(self, request, *args, **kwargs):
-        user = request.user
-        restaurant = get_object_or_404(Restaurant, owner=user.owner)
-        serializer = MenuCreateSerializer(data = request.data)
-        if Menu.objects.all().filter(restaurant=restaurant).first() == None:
-            if serializer.is_valid(raise_exception=True):
-                menu =Menu.objects.create(restaurant=restaurant,description=serializer.data['description'])
-                ser = MenuShowSerializer(instance=menu)
-                return Response({"message":"create menu seccessfully ","data":ser.data},status=status.HTTP_200_OK)
-            else:
-                return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
-        else:
-            return Response({"message":"you can not this operation because exist menu for this restaurant "},
-                            status=status.HTTP_400_BAD_REQUEST)
-
-
-
 
 class FoodViewset(ModelViewSet):
-    permission_classes = [IsOwnerRestuarant]
+    permission_classes = [IsRestuarantExist]
     serializer_class = FoodSerializer
 
     def get_queryset(self):
-        menu_id = self.kwargs['menu_pk']
-        return Food.objects.all().filter(menu_id=menu_id).filter(restaurant__owner__user=self.request.user)
+        user = self.request.user
+        restaurant = get_object_or_404(Restaurant,owner__user=user)
+        menu = get_object_or_404(Menu,restaurant=restaurant)
+        return Food.objects.all().filter(menu=menu)
 
 
     def get_serializer_class(self):
@@ -103,14 +74,14 @@ class FoodViewset(ModelViewSet):
 
 
     def create(self, request, *args, **kwargs):
-        menu_id = kwargs['menu_pk']
-        restaurant = get_object_or_404(Restaurant,owner__user=request.user)
+        user = request.user
+        restaurant = get_object_or_404(Restaurant,owner__user=user)
+        menu = get_object_or_404(Menu,restaurant=restaurant)
+
         serializer = FoodSerializer(data=request.data)
         if serializer.is_valid(raise_exception=True):
-            category=FoodCategory(category_name=serializer.validated_data['food_category']['category_name'],category_desc=serializer.validated_data['food_category']['category_desc'])
-            category.save()
-            food = Food.objects.create(menu_id=menu_id,restaurant=restaurant,
-                                       food_category=category,
+            food = Food.objects.create(menu=menu,
+                                       food_category=serializer.validated_data['food_category'],
                                        image=serializer.validated_data['image'],
                                        name=serializer.validated_data['name'],desc=serializer.validated_data['desc'],
                                        price=serializer.validated_data['price'])
@@ -118,6 +89,66 @@ class FoodViewset(ModelViewSet):
             return Response({"message":"add food seccessfully","data":serializer.data},status=status.HTTP_201_CREATED)
         else:
             return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+
+#
+# class AddFoodCategoryViewset(GenericViewSet,mixins.CreateModelMixin):
+#     queryset = FoodCategory.objects.all()
+#     serializer_class = FoodCategorySerializer
+#
+#
+#     def create(self, request, *args, **kwargs):
+#         user = self.request.user
+#         owner = get_object_or_404(Owner,user=user)
+#         restaurant = get_object_or_404(Restaurant,owner=owner)
+#         serializer= FoodCategorySerializer(data=request.data)
+#
+#         if serializer.is_valid(raise_exception=True):
+#             food_category = FoodCategory.objects.create(restaurant=restaurant,**serializer.validated_data)
+#             return Response({"message":"create food category seccessfully ","data":serializer.data},status=status.HTTP_201_CREATED)
+#
+#         else:
+#             return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+class FoodCategoryRequestViewset(GenericViewSet,mixins.CreateModelMixin,mixins.ListModelMixin):
+
+    permission_classes = [IsRestuarantExist]
+
+    def get_queryset(self):
+        return FoodCategoryRequest.objects.all().filter(restaurant__owner__user=self.request.user)
+
+    def get_serializer_class(self):
+        if self.request.method =='GET':
+            return FoodCategoryRequestShowSerializer
+        else:
+            return FoodCategoryRequestPostSerializer
+
+    def create(self, request, *args, **kwargs):
+        restaurant = get_object_or_404(Restaurant,owner__user=request.user)
+        serializer = FoodCategoryRequestPostSerializer(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            category_request = FoodCategoryRequest.objects.create(restaurant=restaurant,
+                                                                  admin_approval=False,
+                                                                  **serializer.validated_data)
+            return Response({"message":"request post seccessfully","data":serializer.data},status=status.HTTP_201_CREATED)
+
+        else:
+            return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+
+
+
+
+
 
 
 

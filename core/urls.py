@@ -7,20 +7,13 @@ from rest_framework_nested import routers
 
 router = DefaultRouter()
 router.register(r'res',RestaurantView, basename='restaurant')
-router.register(r'menu',MenuViewset,basename='menu')
-
-
-
-
-menu_router=routers.NestedDefaultRouter(router,'menu',lookup='menu')
-menu_router.register(r'food',FoodViewset,basename='menu-food')
-
+router.register(r'food',FoodViewset,basename='food')
+router.register(r'category_request',FoodCategoryRequestViewset,basename='category-request')
 
 
 
 urlpatterns=[
     path('',include(router.urls)),
-    path('',include(menu_router.urls)),
 
 ]
 
