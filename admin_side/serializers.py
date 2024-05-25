@@ -24,6 +24,25 @@ class FoodCategoryrequestShowAllSerializer(serializers.ModelSerializer):
 
 
 
+class AdminApprovalDeleteRestaurantSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=DeleteRestaurantRequest
+        fields=['admin_approval']
+
+    def update(self, instance, validated_data):
+        instance.admin_approval = validated_data['admin_approval']
+        instance.save()
+        if instance.admin_approval == True and Restaurant.objects.all().filter(id=instance.restaurant.id).first()!=None:
+            restaurant =  Restaurant.objects.all().filter(id=instance.restaurant.id).first()
+            restaurant.delete()
+
+        return instance
+
+
+class DeleteRequestShowAllSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=DeleteRestaurantRequest
+        fields='__all__'
 
 
 

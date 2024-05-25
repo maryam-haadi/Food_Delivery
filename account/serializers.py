@@ -1,7 +1,10 @@
 from rest_framework import serializers
-from .models import User,Customer,Owner,StoreType
+from django.shortcuts import render,get_object_or_404
+from customer.serializers import ShowAddressSerializer
+from .models import User,Customer,Owner,StoreType,Address
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.response import Response
+from customer.serializers import *
 
 class UserRegisterSerializer(serializers.ModelSerializer):
     class Meta:
@@ -30,8 +33,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model =User
         fields = ['id','name','last_name','phone_number','email']
-
-
 
 
 class UserVerifySerializer(serializers.ModelSerializer):

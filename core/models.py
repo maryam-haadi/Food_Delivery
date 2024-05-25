@@ -85,6 +85,21 @@ class Restaurant(models.Model):
 
 
 
+class DeleteRestaurantRequest(models.Model):
+    restaurant = models.ForeignKey('Restaurant',on_delete=models.CASCADE,related_name='delete_request')
+    desc = models.TextField(blank=True)
+    admin_approval = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+
+    def __str__(self):
+        return self.restaurant.name
+
+
+
+
+
+
+
 
 class Favorite(models.Model):
     user =models.ForeignKey('account.User',on_delete=models.CASCADE,related_name='favorites',blank=True)
@@ -157,29 +172,20 @@ class Food(models.Model):
 
 
 
-# class Cofe(models.Model):
-#     image = models.ImageField(upload_to='images/', blank=True)
-#     owner = models.OneToOneField('account.Owner', on_delete=models.CASCADE, related_name='cofe', blank=False)
-#     delivery_time = models.CharField(max_length=80, blank=False)
-#     min_cart_price = models.DecimalField(max_digits=6, decimal_places=2, blank=False)
-#     delivery_price = models.DecimalField(max_digits=6, decimal_places=2, blank=False)
-#     name = models.CharField(max_length=200, blank=False)
-#     phone_number = models.CharField(max_length=50, blank=True)
-#     open_time = models.TimeField(blank=False)
-#     close_time = models.TimeField(blank=False)
-#     is_favorite = models.BooleanField(default=False, blank=True)
-#     address = models.OneToOneField('account.Address', on_delete=models.PROTECT, blank=False)
 
 
 
 
-# class CofeFood(models.Model):
-#     image = models.ImageField(upload_to='images/',blank=True)
-#     food_category = models.ForeignKey('FoodCategory',on_delete=models.CASCADE,related_name='foods',blank=False)
-#     name = models.CharField(max_length=150,blank=False)
-#     desc = models.TextField(blank=True)
-#     price = models.DecimalField(max_digits=6,decimal_places=2,blank=False)
-#     cofe = models.ForeignKey('Cofe',on_delete=models.CASCADE,related_name='coffoods')
+
+
+
+
+
+
+
+
+
+
 
 
 

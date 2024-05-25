@@ -1,4 +1,5 @@
 from django.shortcuts import render,get_object_or_404
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated,AllowAny,IsAdminUser
 from .permissions import IsOwnerRestuarant,IsOwnerRestuarantCreate,IsRestuarantExist
 # Create your views here.
@@ -11,6 +12,8 @@ from .serializers import *
 from .models import *
 from rest_framework.response import Response
 from  customer.permissions import IsCustomer
+from rating.serializers import RatingPostSerializer
+from rating.models import Rating
 
 class RestaurantView(ModelViewSet):
     def get_queryset(self):
@@ -94,24 +97,6 @@ class FoodViewset(ModelViewSet):
 
 
 
-#
-# class AddFoodCategoryViewset(GenericViewSet,mixins.CreateModelMixin):
-#     queryset = FoodCategory.objects.all()
-#     serializer_class = FoodCategorySerializer
-#
-#
-#     def create(self, request, *args, **kwargs):
-#         user = self.request.user
-#         owner = get_object_or_404(Owner,user=user)
-#         restaurant = get_object_or_404(Restaurant,owner=owner)
-#         serializer= FoodCategorySerializer(data=request.data)
-#
-#         if serializer.is_valid(raise_exception=True):
-#             food_category = FoodCategory.objects.create(restaurant=restaurant,**serializer.validated_data)
-#             return Response({"message":"create food category seccessfully ","data":serializer.data},status=status.HTTP_201_CREATED)
-#
-#         else:
-#             return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
 
 
 
@@ -145,6 +130,31 @@ class FoodCategoryRequestViewset(GenericViewSet,mixins.CreateModelMixin,mixins.L
 
 
 
+
+
+class DeleteRestaurantRequestViewset(GenericViewSet,mixins.CreateModelMixin,mixins.ListModelMixin):
+
+    permission_classes = [IsRestuarantExist]
+
+    def get_queryset(self):
+        return DeleteRestaurantRequest.objects.all().filter(restaurant__owner__user=self.request.user)
+
+    def get_serializer_class(self):
+        if self.request.method =='GET':
+            return DeleteRestaurantRequestShowSerializer
+        else:
+            return DeleteRestaurantRequestPostSerializer
+
+    def create(self, request, *args, **kwargs):
+        restaurant = get_object_or_404(Restaurant,owner__user=request.user)
+        serializer = DeleteRestaurantRequestPostSerializer(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            delete_request = DeleteRestaurantRequest.objects.create(restaurant=restaurant,admin_approval=False,
+                                                                    desc=serializer.validated_data['desc'])
+            return Response({"message":"request post seccessfully","data":serializer.data},status=status.HTTP_201_CREATED)
+
+        else:
+            return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
 
 
 

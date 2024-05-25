@@ -7,9 +7,11 @@ from rest_framework_simplejwt.views import (
 )
 
 router = DefaultRouter()
-router.register(r'owner',OwnerRegisterViews, basename='owner')
+router.register(r'owner_register',OwnerRegisterViews, basename='owner-register')
+router.register(r'owner_profile',OwnerProfileViewset, basename='owner-profile')
 router.register(r'verify',VerifyView, basename='verify')
-router.register(r'customer',UserRegisterView, basename='customer')
+router.register(r'customer_register',UserRegisterView, basename='customer_register')
+router.register(r'customer_profile',CustomerProfileViewset, basename='customer-profile')
 router.register(r'login',LoginView, basename='login')
 
 urlpatterns=[

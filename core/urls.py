@@ -9,6 +9,7 @@ router = DefaultRouter()
 router.register(r'res',RestaurantView, basename='restaurant')
 router.register(r'food',FoodViewset,basename='food')
 router.register(r'category_request',FoodCategoryRequestViewset,basename='category-request')
+router.register(r'delete_request',DeleteRestaurantRequestViewset,basename='delete-request')
 
 
 

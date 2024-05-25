@@ -102,10 +102,16 @@ class FoodSerializer(serializers.ModelSerializer):
 class FoodShowSerializer(serializers.ModelSerializer):
 
     category_name = serializers.CharField(source='food_category.category_name',max_length=200)
+    average_rating = serializers.SerializerMethodField(method_name='get_average_rating')
     class Meta:
         model = Food
-        fields=['id','image','category_name','name','desc','price']
+        fields=['id','image','category_name','name','desc','price','average_rating']
 
+    def get_average_rating(self,obj):
+        ratings = obj.ratings.all()
+        if not ratings:
+            return 0
+        return round(sum(rating.stars for rating in ratings)/len(ratings),2)
 
 
 
@@ -117,5 +123,23 @@ class FoodCategoryRequestPostSerializer(serializers.ModelSerializer):
 class FoodCategoryRequestShowSerializer(serializers.ModelSerializer):
     class Meta:
         model=FoodCategoryRequest
-        fields=['cat_name','cat_desc','admin_approval']
+        fields=['id','cat_name','cat_desc','admin_approval']
+
+
+
+
+
+class DeleteRestaurantRequestPostSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=DeleteRestaurantRequest
+        fields=['desc']
+
+class DeleteRestaurantRequestShowSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=DeleteRestaurantRequest
+        fields=['id','desc','admin_approval']
+
+
+
+
 

@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
-from rest_framework.permissions import IsAuthenticated,AllowAny
+from rest_framework.permissions import IsAuthenticated,AllowAny,IsAdminUser
 from django.utils import timezone
 from datetime import timedelta
 from rest_framework import status
@@ -14,44 +14,18 @@ from .serializers import *
 from .models import *
 import random
 import requests
+from customer.permissions import *
+from core.permissions import *
 
 url = "https://rest.payamak-panel.com/api/SendSMS/SendSMS"
 # Create your views here.
 def generate_otp(n=6):
     return "".join(map(str, random.sample(range(0, 10), n)))
 
-class UserRegisterView(ModelViewSet):
-    http_method_names = ['get','post','put']
-
-    def get_queryset(self):
-        user = self.request.user
-        if user.is_authenticated:
-            return User.objects.all().filter(id=user.id,is_customer=True)
-        return None
-
-
-
-    def get_serializer_class(self):
-        if self.request.method == 'POST':
-            return UserRegisterSerializer
-        elif self.request.method == 'PUT':
-            return UserUpdateSerializer
-        elif self.request.method == 'GET':
-            return UserProfileSerializer
-        else:
-            return UserProfileSerializer
-
-
-
-    def get_permissions(self):
-        if self.request.method == 'POST':
-            return [AllowAny()]
-        elif self.request.method == 'GET':
-            return [IsAuthenticated()]
-        elif self.request.method == 'PUT':
-            return [IsAuthenticated()]
-        else:
-            return [AllowAny()]
+class UserRegisterView(GenericViewSet,mixins.CreateModelMixin):
+    queryset = User.objects.all()
+    permission_classes = [AllowAny]
+    serializer_class = UserRegisterSerializer
 
 
     def create(self, request, *args, **kwargs):
@@ -73,6 +47,7 @@ class UserRegisterView(ModelViewSet):
             }
             response = requests.post(url, data=payload)
             print(response.json())
+            print(otp_code)
 
             if response.status_code == 200:
                 return Response({'message': 'message send successfully'},status=status.HTTP_200_OK)
@@ -83,6 +58,24 @@ class UserRegisterView(ModelViewSet):
             return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
 
 
+
+
+
+class CustomerProfileViewset(ModelViewSet):
+    http_method_names = ['get','put']
+    permission_classes = [IsCustomer]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_authenticated:
+            return User.objects.all().filter(id=user.id,is_customer=True)
+        return None
+
+    def get_serializer_class(self):
+        if self.request.method == 'PUT':
+            return UserUpdateSerializer
+        else:
+            return UserProfileSerializer
 
 
 
@@ -174,34 +167,11 @@ class LoginView(GenericViewSet,mixins.CreateModelMixin):
 
 
 
-class OwnerRegisterViews(ModelViewSet):
-    http_method_names = ['post','get','put']
-    def get_queryset(self):
-        print(self.request.user.is_authenticated)
-        if self.request.user.is_authenticated:
-            user_id = self.request.user.id
-            return Owner.objects.all().filter(user_id=user_id)
-        else:
-            return None
-
-
-    def get_serializer_class(self):
-        if self.request.method == 'POST':
-            return OwnerRegisterSerializer
-        elif self.request.method == 'GET':
-            return OwnerProfileSerializer
-        elif self.request.method == 'PUT':
-            return  OwnerUpdateSerializer
-
-
-
-    def get_permissions(self):
-        if self.request.method == 'POST':
-            return [AllowAny()]
-        elif self.request.method == 'GET':
-            return [IsAuthenticated()]
-        elif self.request.method == 'PUT':
-            return [IsAuthenticated()]
+class OwnerRegisterViews(GenericViewSet,mixins.CreateModelMixin):
+    http_method_names = ['post']
+    queryset = Owner.objects.all()
+    serializer_class = OwnerRegisterSerializer
+    permission_classes = [AllowAny]
 
 
     def create(self, request, *args, **kwargs):
@@ -234,9 +204,19 @@ class OwnerRegisterViews(ModelViewSet):
 
 
 
+class OwnerProfileViewset(ModelViewSet):
+    http_method_names = ['get','put']
+    permission_classes = [IsOwnerRestuarant]
+
+    def get_queryset(self):
+         return Owner.objects.all().filter(user_id=self.request.user.id)
 
 
-
+    def get_serializer_class(self):
+        if self.request.method == 'GET':
+            return OwnerProfileSerializer
+        else:
+            return  OwnerUpdateSerializer
 
 
 

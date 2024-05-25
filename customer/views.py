@@ -11,12 +11,14 @@ from rest_framework.viewsets import ModelViewSet,GenericViewSet
 from rest_framework import mixins
 from .serializers import *
 from .models import *
-from .permissions import IsCustomer
+from .permissions import *
 from rest_framework.decorators import action
 from core.serializers import *
 from account.serializers import *
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
+from rating.models import *
+from rating.serializers import *
 # Create your views here.
 
 class CustomerAddress(ModelViewSet):
@@ -36,15 +38,35 @@ class CustomerAddress(ModelViewSet):
     def create(self, request, *args, **kwargs):
         serializer = AddressSerializer(data=request.data)
         if serializer.is_valid(raise_exception=True):
-            address_name =serializer.data['address_name']
-            latitude = serializer.data['latitude']
-            longitude = serializer.data['longitude']
+            address_name =serializer.validated_data['address_name']
+            latitude = serializer.validated_data['latitude']
+            longitude = serializer.validated_data['longitude']
             address = Address.objects.create(address_name=address_name
-                                             ,latitude=latitude,longitude=longitude)
-            address.user.add(request.user)
+                                             ,latitude=latitude,longitude=longitude,user=request.user)
             return Response({"message":"seccessfully create address","data":serializer.data},status=status.HTTP_200_OK)
         else:
             return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+class SelectCustomerAddressViewset(ModelViewSet):
+    http_method_names = ['get','put']
+    permission_classes = [IsCustomer]
+
+    def get_queryset(self):
+        return Customer.objects.all().filter(user=self.request.user)
+
+    def get_serializer_class(self):
+        if self.request.method == 'GET':
+            return CustomerShowSelectedAddressSerializer
+        elif self.request.method == 'PUT':
+            return CustomerSelectAddressSerializer
+        else:
+            return CustomerShowSelectedAddressSerializer
+
+    def get_serializer_context(self):
+        return {"request":self.request}
 
 
 
@@ -69,23 +91,25 @@ class RestaurantRangeView(GenericViewSet,mixins.ListModelMixin,mixins.RetrieveMo
         return distance
 
 
+    def get_serializer_context(self):
+        return {"user":self.request.user}
+
 
     queryset = Restaurant.objects.all()
-    permission_classes = [IsCustomer]
+    permission_classes = [IsCustomerHaveAddress]
 
     http_method_names = ['get']
 
 
     serializer_class = RestaurantRangeSerializer
 
-    def get_serializer_context(self):
-        return {"a_id":self.kwargs['address_pk']}
 
     def list(self, request, *args, **kwargs):
         nearby_restaurant =[]
         distances=[]
-        address_id =self.kwargs['address_pk']
-        user_addr=get_object_or_404(Address,id=address_id)
+
+        customer=get_object_or_404(Customer,user=request.user)
+        user_addr = customer.address
         restaurants = Restaurant.objects.all()
         for restaurant in restaurants:
             distance =self.get_distance(user_addr.latitude,user_addr.longitude,
@@ -144,6 +168,8 @@ class RestaurantFoodsViewset(GenericViewSet,mixins.RetrieveModelMixin,mixins.Lis
 
 
 
+
+
 class FavoriteView(ModelViewSet):
     http_method_names = ['get','post','delete']
     permission_classes = [IsCustomer]
@@ -170,6 +196,8 @@ class FavoriteView(ModelViewSet):
             return Response({"message":"seccessfully saved","data":serializer.data},status=status.HTTP_200_OK)
         else:
             return Response({"Error":"you can not this operation"},status=status.HTTP_400_BAD_REQUEST)
+
+
 
 
 

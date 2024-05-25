@@ -2,6 +2,7 @@ from rest_framework import serializers
 from .models import *
 from account.models import *
 from core.models import *
+from customer.models import *
 from datetime import  timedelta, datetime
 from math import radians,sin,cos,sqrt,asin
 from core.serializers import *
@@ -13,6 +14,39 @@ class ShowAddressSerializer(serializers.ModelSerializer):
         model = Address
         fields=['id','address_name','latitude','longitude']
 
+class CustomerShowSelectedAddressSerializer(serializers.ModelSerializer):
+    address=ShowAddressSerializer()
+    class Meta:
+        model=Customer
+        fields=('id','user','address')
+
+
+
+
+
+class CustomerSelectAddressSerializer(serializers.ModelSerializer):
+    address_id = serializers.IntegerField()
+
+    class Meta:
+        model=Customer
+        fields=['address_id']
+
+
+    def validate(self, attrs):
+        address = get_object_or_404(Address,id=attrs['address_id'])
+        if address.user != self.context['request'].user:
+            raise serializers.ValidationError("this address id is not correct!")
+        return attrs
+
+
+    def update(self, instance, validated_data):
+        address= get_object_or_404(Address,id=validated_data['address_id'])
+        instance.address = address
+        instance.save()
+        return instance
+
+
+
 
 class AddressSerializer(serializers.ModelSerializer):
     class Meta:
@@ -21,10 +55,11 @@ class AddressSerializer(serializers.ModelSerializer):
 
 class RestaurantListSerializer(serializers.ModelSerializer):
     is_open = serializers.SerializerMethodField(method_name='get_is_active', read_only=True)
+    average_rating = serializers.SerializerMethodField(method_name='get_average_rating')
     class Meta:
         model = Restaurant
         fields = ['id', 'image', 'category', 'delivery_time', 'min_cart_price', 'delivery_price'
-            ,'name', 'phone_number', 'open_time', 'close_time', 'address_name', 'latitude', 'longitude','is_open']
+            ,'name', 'phone_number', 'open_time', 'close_time', 'address_name', 'latitude', 'longitude','is_open','average_rating']
 
     def get_is_active(self, restaurant: Restaurant):
         if datetime.now().time() < restaurant.close_time and datetime.now().time() > restaurant.open_time:
@@ -32,6 +67,12 @@ class RestaurantListSerializer(serializers.ModelSerializer):
         else:
             check = False
         return check
+
+    def get_average_rating(self,obj):
+        ratings = obj.ratings.all()
+        if not ratings:
+            return 0
+        return round(sum(rating.stars for rating in ratings)/len(ratings),2)
 
 
 
@@ -54,15 +95,17 @@ class FavoriteListSerializer(serializers.ModelSerializer):
 class RestaurantRangeSerializer(serializers.ModelSerializer):
     distance = serializers.SerializerMethodField(method_name='get_distance',read_only=True)
     is_open = serializers.SerializerMethodField(method_name='get_is_active', read_only=True)
+    average_rating = serializers.SerializerMethodField(method_name='get_average_rating')
     class Meta:
         model = Restaurant
         fields =['id','image','category','delivery_time','min_cart_price','delivery_price'
-            ,'name','phone_number','open_time','close_time','address_name','latitude','longitude','is_open','distance']
+            ,'name','phone_number','open_time','close_time','address_name','latitude','longitude','is_open','distance','average_rating']
 
 
     def get_distance(self,restaurant:Restaurant):
-        address_id = self.context['a_id']
-        user_address = Address.objects.all().filter(id=address_id).first()
+        user=self.context['user']
+        customer=get_object_or_404(Customer,user=user)
+        user_address = customer.address
         earth_radius = 6371
 
         user_lat = radians(user_address.latitude)
@@ -82,6 +125,43 @@ class RestaurantRangeSerializer(serializers.ModelSerializer):
         else:
             check = False
         return check
+
+    def get_average_rating(self,obj):
+        ratings = obj.ratings.all()
+        if not ratings:
+            return 0
+        return round(sum(rating.stars for rating in ratings)/len(ratings),2)
+
+
+
+class FoodShowForCustomersSerializer(serializers.ModelSerializer):
+
+    category_name = serializers.CharField(source='food_category.category_name',max_length=200)
+    average_rating = serializers.SerializerMethodField(method_name='get_average_rating')
+    class Meta:
+        model = Food
+        fields=['id','image','category_name','name','desc','price','average_rating']
+
+    def get_average_rating(self,obj):
+        ratings = obj.ratings.all()
+        if not ratings:
+            return 0
+        return round(sum(rating.stars for rating in ratings)/len(ratings),2)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
