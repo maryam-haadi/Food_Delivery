@@ -104,6 +104,7 @@ class VerifyView(mixins.CreateModelMixin,GenericViewSet):
                     user.last_login=timezone.now()
                     user.is_verified = True
                     user.save()
+                    user.change_address_time = user.last_login + timedelta(hours=1)
                     return Response({'refresh': str(refresh),'access': str(refresh.access_token),},
                     status=status.HTTP_200_OK)
                 else:
@@ -190,6 +191,7 @@ class OwnerRegisterViews(GenericViewSet,mixins.CreateModelMixin):
                 'text':message
             }
             response = requests.post(url, data=payload)
+            print(otp_code)
             print(response.json())
 
             if response.status_code == 200:

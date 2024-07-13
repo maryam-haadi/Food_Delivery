@@ -106,18 +106,21 @@ class RestaurantRangeSerializer(serializers.ModelSerializer):
         user=self.context['user']
         customer=get_object_or_404(Customer,user=user)
         user_address = customer.address
-        earth_radius = 6371
+        if user_address is None:
+            return None
+        else:
+            earth_radius = 6371
 
-        user_lat = radians(user_address.latitude)
-        user_long = radians(user_address.longitude)
-        restaurant_lat = radians(restaurant.latitude)
-        restaurant_long = radians(restaurant.longitude)
-        dlon = restaurant_long - user_long
-        dlat = restaurant_lat - user_lat
-        a=sin(dlat/2)*sin(dlat/2) + cos(user_lat) * cos(restaurant_lat) * sin(dlon/2) *sin(dlon/2)
-        c=2* asin(sqrt(a))
-        distance = earth_radius * c
-        return distance
+            user_lat = radians(user_address.latitude)
+            user_long = radians(user_address.longitude)
+            restaurant_lat = radians(restaurant.latitude)
+            restaurant_long = radians(restaurant.longitude)
+            dlon = restaurant_long - user_long
+            dlat = restaurant_lat - user_lat
+            a=sin(dlat/2)*sin(dlat/2) + cos(user_lat) * cos(restaurant_lat) * sin(dlon/2) *sin(dlon/2)
+            c=2* asin(sqrt(a))
+            distance = earth_radius * c
+            return distance
 
     def get_is_active(self,restaurant:Restaurant):
         if datetime.now().time() < restaurant.close_time and datetime.now().time() > restaurant.open_time:

@@ -73,6 +73,7 @@ class User(AbstractBaseUser):
     is_customer = models.BooleanField(default=False,blank=True)
     otp = models.CharField(max_length=6, blank=True)
     otp_expire_time = models.DateTimeField(blank=True, null=True)
+    change_address_time = models.DateTimeField(blank=True,null=True)
 
     USERNAME_FIELD = "phone_number"
     REQUIRED_FIELDS = ["name","last_name"]

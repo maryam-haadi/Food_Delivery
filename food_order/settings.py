@@ -53,16 +53,6 @@ INSTALLED_APPS = [
     'comment',
 ]
 
-# #for task in customer app (khodam neveshtam)
-CELERY_BEAT_SCHEDULE = {
-    'set-null-fields-every-5-minutes': {
-        'task': 'customer.tasks.set_field_to_null',
-        'schedule': timedelta(minutes=5)
-    },
-}
-
-
-
 
 
 
@@ -224,16 +214,21 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 
-# CELERY_BROKER_URL = 'redis://localhost:6379/0'
-# CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
-# # CELERY_IMPORTS = ('customer.tasks',)
-# CELERY_ACCEPT_CONTENT = ['json']
-# CELERY_TASK_SERIALIZER = 'json'
-# CELERY_RESULT_SERIALIZER = 'json'
-#
-# CACHES = {
-#     'default': {
-#         'BACKEND': 'django_redis.cache.RedisCache',
-#         'LOCATION': 'redis://localhost:8000/0',
-#     }
-# }
+# celery
+
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+
+
+# Celery Configuration Options
+CELERY_TIMEZONE = 'UTC'
+
+# Schedule
+from celery.schedules import crontab
+
+CELERY_BEAT_SCHEDULE = {
+    'null-address-every-hour': {
+        'task': 'myapp.tasks.null_address',
+        'schedule': crontab(minute=5),  # Executes every hour
+    },
+}

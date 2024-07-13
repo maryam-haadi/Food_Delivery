@@ -88,7 +88,8 @@ class FoodViewset(ModelViewSet):
                                        image=serializer.validated_data['image'],
                                        name=serializer.validated_data['name'],desc=serializer.validated_data['desc'],
                                        price=serializer.validated_data['price'])
-
+            image = serializer.validated_data['image']
+            print(image)
             return Response({"message":"add food seccessfully","data":serializer.data},status=status.HTTP_201_CREATED)
         else:
             return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)

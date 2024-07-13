@@ -95,8 +95,10 @@ class RestaurantRangeView(GenericViewSet,mixins.ListModelMixin,mixins.RetrieveMo
         return {"user":self.request.user}
 
 
-    queryset = Restaurant.objects.all()
-    permission_classes = [IsCustomerHaveAddress]
+    def get_queryset(self):
+        return Restaurant.objects.all().filter(owner__type__storetype_name='restaurant')
+
+    permission_classes = [IsCustomer]
 
     http_method_names = ['get']
 
@@ -110,30 +112,84 @@ class RestaurantRangeView(GenericViewSet,mixins.ListModelMixin,mixins.RetrieveMo
 
         customer=get_object_or_404(Customer,user=request.user)
         user_addr = customer.address
-        restaurants = Restaurant.objects.all()
-        for restaurant in restaurants:
-            distance =self.get_distance(user_addr.latitude,user_addr.longitude,
-                                   restaurant.latitude,restaurant.longitude)
-            if distance < 5000:
-                nearby_restaurant.append(restaurant)
-                distances.append(distance)
+        if user_addr is not None:
+            restaurants = Restaurant.objects.all().filter(owner__type__storetype_name='restaurant')
+            for restaurant in restaurants:
+                distance =self.get_distance(user_addr.latitude,user_addr.longitude,
+                                    restaurant.latitude,restaurant.longitude)
+                if distance < 5000:
+                    nearby_restaurant.append(restaurant)
+                    distances.append(distance)
 
-        serializer = self.get_serializer(nearby_restaurant,many=True)
-        return Response({"distance":distances,"data":serializer.data})
+            serializer = self.get_serializer(nearby_restaurant,many=True)
+            return Response({"distance":distances,"data":serializer.data})
+
+        else:
+            restaurants = Restaurant.objects.all().filter(owner__type__storetype_name='restaurant')
+            serializer = self.get_serializer(restaurants,many=True)
+            return Response({"data":serializer.data})
 
 
-class RestaurantTypeViewset(GenericViewSet,mixins.ListModelMixin,mixins.RetrieveModelMixin):
-    serializer_class = RestaurantListSerializer
-    permission_classes = [IsCustomer]
-    def get_queryset(self):
-        return Restaurant.objects.all().filter(owner__type__storetype_name='restaurant')
+
 
 
 class CofeTypeViewset(GenericViewSet,mixins.ListModelMixin,mixins.RetrieveModelMixin):
-    serializer_class = RestaurantListSerializer
-    permission_classes = [IsCustomer]
+
+    def get_distance(self,user_lat, user_long, res_lat, res_long):
+
+        earth_radius = 6371
+
+        user_lat = radians(user_lat)
+        user_long = radians(user_long)
+        restaurant_lat = radians(res_lat)
+        restaurant_long = radians(res_long)
+        dlon = restaurant_long - user_long
+        dlat = restaurant_lat - user_lat
+        a = sin(dlat / 2) * sin(dlat / 2) + cos(user_lat) * cos(restaurant_lat) * sin(dlon / 2) * sin(dlon / 2)
+        c = 2 * asin(sqrt(a))
+        distance = earth_radius * c
+        return distance
+
+
+    def get_serializer_context(self):
+        return {"user":self.request.user}
+
+
     def get_queryset(self):
         return Restaurant.objects.all().filter(owner__type__storetype_name='cofe')
+
+    permission_classes = [IsCustomer]
+
+    http_method_names = ['get']
+
+
+    serializer_class = RestaurantRangeSerializer
+
+
+    def list(self, request, *args, **kwargs):
+        nearby_restaurant =[]
+        distances=[]
+
+        customer=get_object_or_404(Customer,user=request.user)
+        user_addr = customer.address
+        if user_addr is not None:
+            restaurants = Restaurant.objects.all().filter(owner__type__storetype_name='cofe')
+            for restaurant in restaurants:
+                distance =self.get_distance(user_addr.latitude,user_addr.longitude,
+                                    restaurant.latitude,restaurant.longitude)
+                if distance < 5000:
+                    nearby_restaurant.append(restaurant)
+                    distances.append(distance)
+
+            serializer = self.get_serializer(nearby_restaurant,many=True)
+            return Response({"distance":distances,"data":serializer.data})
+
+        else:
+            restaurants = Restaurant.objects.all().filter(owner__type__storetype_name='cofe')
+            serializer = self.get_serializer(restaurants,many=True)
+            return Response({"data":serializer.data})
+
+
 
 
 
@@ -145,11 +201,6 @@ class RestaurantsCategoryViewset(GenericViewSet,mixins.ListModelMixin,mixins.Ret
     filterset_fields = ['category']
 
 
-
-class RestaurantsListView(GenericViewSet,mixins.ListModelMixin,mixins.RetrieveModelMixin):
-    queryset = Restaurant.objects.all()
-    serializer_class = RestaurantListSerializer
-    permission_classes = [IsCustomer]
 
 
 

@@ -108,6 +108,10 @@ class Favorite(models.Model):
     class Meta:
         unique_together=('user','restaurant')
 
+
+
+
+
 class Menu(models.Model):
     restaurant =models.ForeignKey('Restaurant',on_delete=models.CASCADE,related_name='menu',blank=True)
 
