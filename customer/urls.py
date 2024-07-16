@@ -8,8 +8,7 @@ from django.urls import reverse
 router = DefaultRouter()
 router.register(r'address',CustomerAddress,basename='address')
 router.register(r'select_address',SelectCustomerAddressViewset, basename='select-address')
-# router.register(r'res_list',RestaurantsListView,basename='res')
-router.register(r'restaurants',RestaurantRangeView,basename='restaurant')
+router.register(r'restaurants',RestaurantRangeView,basename='restaurants')
 router.register(r'cofes',CofeTypeViewset,basename='cofe')
 router.register(r'restaurants-category',RestaurantsCategoryViewset,basename='restaurants-category')
 

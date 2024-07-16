@@ -76,6 +76,15 @@ class RestaurantListSerializer(serializers.ModelSerializer):
 
 
 
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        request = self.context.get('request')
+        if request and instance.image:
+            representation['image'] = request.build_absolute_uri(instance.image.url)
+        return representation
+
+
+
 class FavoritPostSerializer(serializers.ModelSerializer):
     class Meta:
         model = Favorite
@@ -136,6 +145,14 @@ class RestaurantRangeSerializer(serializers.ModelSerializer):
         return round(sum(rating.stars for rating in ratings)/len(ratings),2)
 
 
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        request = self.context.get('request')
+        if request and instance.image:
+            representation['image'] = request.build_absolute_uri(instance.image.url)
+        return representation
+
+
 
 class FoodShowForCustomersSerializer(serializers.ModelSerializer):
 
@@ -152,6 +169,13 @@ class FoodShowForCustomersSerializer(serializers.ModelSerializer):
         return round(sum(rating.stars for rating in ratings)/len(ratings),2)
 
 
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        request = self.context.get('request')
+        if request and instance.image:
+            representation['image'] = request.build_absolute_uri(instance.image.url)
+        return representation
 
 
 

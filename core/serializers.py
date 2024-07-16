@@ -23,6 +23,13 @@ class RestaurantShowSerializer(serializers.ModelSerializer):
             check = False
         return check
 
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        request = self.context.get('request')
+        if request and instance.image:
+            representation['image'] = request.build_absolute_uri(instance.image.url)
+        return representation
+
 
 
 class RestaurantListSerializer(serializers.ModelSerializer):
@@ -40,6 +47,13 @@ class RestaurantListSerializer(serializers.ModelSerializer):
             check = False
         return check
 
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        request = self.context.get('request')
+        if request and instance.image:
+            representation['image'] = request.build_absolute_uri(instance.image.url)
+        return representation
+
 
 
 
@@ -49,6 +63,14 @@ class RestaurantPostSerializer(serializers.ModelSerializer):
         model = Restaurant
         fields=['image','category','delivery_time','min_cart_price','delivery_price'
             ,'name','phone_number','open_time','close_time','address_name','latitude','longitude']
+
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        request = self.context.get('request')
+        if request and instance.image:
+            representation['image'] = request.build_absolute_uri(instance.image.url)
+        return representation
 
 
 
@@ -99,6 +121,14 @@ class FoodSerializer(serializers.ModelSerializer):
         return instance
 
 
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        request = self.context.get('request')
+        if request and instance.image:
+            representation['image'] = request.build_absolute_uri(instance.image.url)
+        return representation
+
+
 class FoodShowSerializer(serializers.ModelSerializer):
 
     category_name = serializers.CharField(source='food_category.category_name',max_length=200)
@@ -112,6 +142,13 @@ class FoodShowSerializer(serializers.ModelSerializer):
         if not ratings:
             return 0
         return round(sum(rating.stars for rating in ratings)/len(ratings),2)
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        request = self.context.get('request')
+        if request and instance.image:
+            representation['image'] = request.build_absolute_uri(instance.image.url)
+        return representation
 
 
 
