@@ -12,7 +12,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         fields=['name','last_name','phone_number']
 
     def create(self, validated_data):
-        user=User.objects.create_user(**validated_data)
+        user = User.objects.create_user(**validated_data)
         customer = Customer.objects.create(user=user)
         return user
 

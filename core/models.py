@@ -127,7 +127,7 @@ class Food(models.Model):
     food_category = models.ForeignKey('FoodCategory',on_delete=models.CASCADE,related_name='food',blank=False)
     name = models.CharField(max_length=150,blank=False)
     desc = models.TextField(blank=True)
-    price = models.DecimalField(max_digits=6,decimal_places=2,blank=False)
+    price = models.DecimalField(max_digits=10,decimal_places=2,blank=False)
 
 
 

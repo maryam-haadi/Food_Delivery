@@ -26,4 +26,5 @@ urlpatterns = [
     path('admin_side/',include('admin_side.urls')),
     path('rating/',include('rating.urls')),
     path('comment/',include('comment.urls')),
+    path('cart/',include('cart.urls')),
 ]
