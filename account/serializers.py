@@ -1,7 +1,5 @@
 from rest_framework import serializers
 from django.shortcuts import render,get_object_or_404
-from customer.serializers import ShowAddressSerializer
-from .models import User,Customer,Owner,StoreType,Address
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.response import Response
 from customer.serializers import *
@@ -16,23 +14,48 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         customer = Customer.objects.create(user=user)
         return user
 
-class UserUpdateSerializer(serializers.ModelSerializer):
+class CustomerProfileUpdateSerializer(serializers.ModelSerializer):
+
+    name = serializers.CharField(source='user.name')
+    last_name = serializers.CharField(source='user.last_name')
+    email = serializers.EmailField(
+        source='user.email'
+    )
     class Meta:
-        model = User
+        model = Customer
         fields = ['name','last_name','email']
 
     def update(self, instance, validated_data):
-        instance.name = validated_data['name']
-        instance.last_name = validated_data['last_name']
-        instance.email = validated_data['email']
-        instance.save()
+        instance.user.name = validated_data['user']['name']
+        instance.user.last_name = validated_data['user']['last_name']
+        instance.user.email = validated_data['user']['email']
+        instance.user.save()
         return instance
 
-class UserProfileSerializer(serializers.ModelSerializer):
+class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model =User
         fields = ['id','name','last_name','phone_number','email']
+
+class CustomerProfileSerializer(serializers.ModelSerializer):
+    user= UserSerializer()
+    class Meta:
+        model=Customer
+        fields=['id','user','address_name','latitude','longitude']
+
+class CustomerAddressShowSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Customer
+        fields = ['id','address_name','latitude','longitude']
+
+class CustomerAddressUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Customer
+        fields = ['address_name','latitude','longitude']
+
+
+
 
 
 class UserVerifySerializer(serializers.ModelSerializer):
@@ -85,7 +108,7 @@ class OwnerRegisterSerializer(serializers.Serializer):
 
 
 class OwnerProfileSerializer(serializers.ModelSerializer):
-    user = UserProfileSerializer(read_only=True)
+    user = UserSerializer(read_only=True)
     type = StoreTypeSerializer(read_only=True)
     class Meta:
         model = Owner

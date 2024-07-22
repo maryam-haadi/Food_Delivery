@@ -99,21 +99,16 @@ class User(AbstractBaseUser):
         return self.is_admin
 
 
-class Address(models.Model):
-    user = models.ForeignKey('User',on_delete=models.CASCADE,related_name='addresses')
-    address_name = models.CharField(max_length=200,default='')
-    latitude = models.FloatField()
-    longitude = models.FloatField()
 
-    def __str__(self):
-        return self.user.phone_number
 
 class Customer(models.Model):
     user = models.OneToOneField('User',on_delete=models.CASCADE,related_name='customers',blank=True)
-    address = models.ForeignKey('Address',on_delete=models.CASCADE,related_name='customers',blank=True,null=True)
+    address_name = models.CharField(max_length=200,blank=True,null=True)
+    latitude = models.FloatField(blank=True,null=True)
+    longitude = models.FloatField(blank=True,null=True)
 
     def __str__(self):
-        return self.user.name
+        return self.user.phone_number
 
 class StoreType(models.Model):
     choice_list =[

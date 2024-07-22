@@ -68,14 +68,34 @@ class CustomerProfileViewset(ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if user.is_authenticated:
-            return User.objects.all().filter(id=user.id,is_customer=True)
+            return Customer.objects.all().filter(user=user)
         return None
 
     def get_serializer_class(self):
         if self.request.method == 'PUT':
-            return UserUpdateSerializer
+            return CustomerProfileUpdateSerializer
         else:
-            return UserProfileSerializer
+            return CustomerProfileSerializer
+
+
+
+class CustomerAddressViewset(ModelViewSet):
+    http_method_names = ['get','put']
+    permission_classes = [IsCustomer]
+
+    def get_queryset(self):
+        if self.request.user.is_authenticated:
+            return Customer.objects.all().filter(user=self.request.user)
+        return None
+
+    def get_serializer_class(self):
+        if self.request.method =='GET':
+            return CustomerAddressShowSerializer
+        else:
+            return CustomerAddressUpdateSerializer
+
+
+
 
 
 

@@ -21,55 +21,6 @@ from rating.models import *
 from rating.serializers import *
 # Create your views here.
 
-class CustomerAddress(ModelViewSet):
-    permission_classes = [IsCustomer]
-    def get_queryset(self):
-        user = self.request.user
-        return Address.objects.all().filter(user=user)
-
-
-    def get_serializer_class(self):
-        if self.request.method == 'GET':
-            return ShowAddressSerializer
-        else:
-            return AddressSerializer
-
-
-    def create(self, request, *args, **kwargs):
-        serializer = AddressSerializer(data=request.data)
-        if serializer.is_valid(raise_exception=True):
-            address_name =serializer.validated_data['address_name']
-            latitude = serializer.validated_data['latitude']
-            longitude = serializer.validated_data['longitude']
-            address = Address.objects.create(address_name=address_name
-                                             ,latitude=latitude,longitude=longitude,user=request.user)
-            return Response({"message":"seccessfully create address","data":serializer.data},status=status.HTTP_200_OK)
-        else:
-            return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
-
-
-
-
-class SelectCustomerAddressViewset(ModelViewSet):
-    http_method_names = ['get','put']
-    permission_classes = [IsCustomer]
-
-    def get_queryset(self):
-        return Customer.objects.all().filter(user=self.request.user)
-
-    def get_serializer_class(self):
-        if self.request.method == 'GET':
-            return CustomerShowSelectedAddressSerializer
-        elif self.request.method == 'PUT':
-            return CustomerSelectAddressSerializer
-        else:
-            return CustomerShowSelectedAddressSerializer
-
-    def get_serializer_context(self):
-        return {"request":self.request}
-
-
-
 
 
 
@@ -111,11 +62,12 @@ class RestaurantRangeView(GenericViewSet,mixins.ListModelMixin,mixins.RetrieveMo
         distances=[]
 
         customer=get_object_or_404(Customer,user=request.user)
-        user_addr = customer.address
-        if user_addr is not None:
+        user_addr_lat = customer.latitude
+        user_addr_long = customer.longitude
+        if user_addr_lat is not None and user_addr_long is not None:
             restaurants = Restaurant.objects.all().filter(owner__type__storetype_name='restaurant')
             for restaurant in restaurants:
-                distance =self.get_distance(user_addr.latitude,user_addr.longitude,
+                distance =self.get_distance(user_addr_lat,user_addr_long,
                                     restaurant.latitude,restaurant.longitude)
                 if distance < 5000:
                     nearby_restaurant.append(restaurant)
@@ -171,11 +123,12 @@ class CofeTypeViewset(GenericViewSet,mixins.ListModelMixin,mixins.RetrieveModelM
         distances=[]
 
         customer=get_object_or_404(Customer,user=request.user)
-        user_addr = customer.address
-        if user_addr is not None:
+        user_addr_lat = customer.latitude
+        user_addr_long = customer.longitude
+        if user_addr_lat is not None and user_addr_long is not None:
             restaurants = Restaurant.objects.all().filter(owner__type__storetype_name='cofe')
             for restaurant in restaurants:
-                distance =self.get_distance(user_addr.latitude,user_addr.longitude,
+                distance =self.get_distance(user_addr_lat,user_addr_long,
                                     restaurant.latitude,restaurant.longitude)
                 if distance < 5000:
                     nearby_restaurant.append(restaurant)

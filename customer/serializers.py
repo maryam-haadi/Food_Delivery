@@ -9,49 +9,6 @@ from core.serializers import *
 from account.serializers import *
 
 
-class ShowAddressSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Address
-        fields=['id','address_name','latitude','longitude']
-
-class CustomerShowSelectedAddressSerializer(serializers.ModelSerializer):
-    address=ShowAddressSerializer()
-    class Meta:
-        model=Customer
-        fields=('id','user','address')
-
-
-
-
-
-class CustomerSelectAddressSerializer(serializers.ModelSerializer):
-    address_id = serializers.IntegerField()
-
-    class Meta:
-        model=Customer
-        fields=['address_id']
-
-
-    def validate(self, attrs):
-        address = get_object_or_404(Address,id=attrs['address_id'])
-        if address.user != self.context['request'].user:
-            raise serializers.ValidationError("this address id is not correct!")
-        return attrs
-
-
-    def update(self, instance, validated_data):
-        address= get_object_or_404(Address,id=validated_data['address_id'])
-        instance.address = address
-        instance.save()
-        return instance
-
-
-
-
-class AddressSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Address
-        fields=['address_name','latitude','longitude']
 
 class RestaurantListSerializer(serializers.ModelSerializer):
     is_open = serializers.SerializerMethodField(method_name='get_is_active', read_only=True)
@@ -114,14 +71,15 @@ class RestaurantRangeSerializer(serializers.ModelSerializer):
     def get_distance(self,restaurant:Restaurant):
         user=self.context['user']
         customer=get_object_or_404(Customer,user=user)
-        user_address = customer.address
-        if user_address is None:
+        user_address_lat = customer.latitude
+        user_address_long = customer.longitude
+        if user_address_lat is None or user_address_long is None:
             return None
         else:
             earth_radius = 6371
 
-            user_lat = radians(user_address.latitude)
-            user_long = radians(user_address.longitude)
+            user_lat = radians(user_address_lat)
+            user_long = radians(user_address_long)
             restaurant_lat = radians(restaurant.latitude)
             restaurant_long = radians(restaurant.longitude)
             dlon = restaurant_long - user_long

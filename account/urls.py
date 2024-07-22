@@ -13,6 +13,7 @@ router.register(r'verify',VerifyView, basename='verify')
 router.register(r'customer_register',UserRegisterView, basename='customer_register')
 router.register(r'customer_profile',CustomerProfileViewset, basename='customer-profile')
 router.register(r'login',LoginView, basename='login')
+router.register(r'customer_address',CustomerAddressViewset, basename='customer-address')
 
 urlpatterns=[
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
