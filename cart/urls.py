@@ -13,14 +13,12 @@ router.register(r'carts',CartViewset,basename='carts')
 
 
 
-cart_router=routers.NestedDefaultRouter(router,'carts',lookup='cart')
-cart_router.register(r'items',CartItemNestedViewset,basename='cart-item')
+cart_cartitem_router=routers.NestedDefaultRouter(router,'carts',lookup='cart')
+cart_cartitem_router.register(r'items',CartItemNestedViewset,basename='cart-item')
 
 
-#
-#
-# restaurants_router=routers.NestedDefaultRouter(router,'restaurants',lookup='res')
-# restaurants_router.register(r'favorite',FavoriteView,basename='restaurant-favorit')
+cart_order_router=routers.NestedDefaultRouter(router,'carts',lookup='cart')
+cart_order_router.register(r'order',OrderViewset,basename='cart-order')
 
 
 
@@ -29,7 +27,8 @@ cart_router.register(r'items',CartItemNestedViewset,basename='cart-item')
 urlpatterns=[
 
     path('',include(router.urls)),
-    path('',include(cart_router.urls))
+    path('',include(cart_cartitem_router.urls)),
+    path('',include(cart_order_router.urls)),
 
 ]
 

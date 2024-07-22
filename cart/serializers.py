@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Restaurant_cart,Restaurant_cart_item
+from .models import Restaurant_cart,Restaurant_cart_item,Order,Payment
 from core.serializers import FoodShowSerializer
 from core.models import Restaurant
 
@@ -54,10 +54,42 @@ class Updatecartitemserializer(serializers.ModelSerializer):
 
 
 
+class AddOrderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model =Order
+        fields = []
+
+class ShowOrderSerializer(serializers.ModelSerializer):
+
+    delivery_price = serializers.SerializerMethodField(method_name='get_delivery_price',read_only=True)
+    total_price = serializers.SerializerMethodField(method_name='get_total_price',read_only=True)
+    total_order = serializers.SerializerMethodField(method_name='get_total_order',read_only=True)
+    class Meta:
+        model = Order
+        fields = ['id','delivery_price','total_order','total_price']
+
+    def get_delivery_price(self,obj:Order):
+        return obj.restaurant_cart.restaurant.delivery_price
+    def get_total_order(self,obj:Order):
+        sum = 0
+        cart_items = Restaurant_cart_item.objects.all().filter(restaurant_cart=obj.restaurant_cart)
+        for item in cart_items:
+            result = item.food.price * item.quantity
+            sum += result
+        return sum
 
 
+    def get_total_price(self,obj:Order):
+        sum = 0
+        cart_items = Restaurant_cart_item.objects.all().filter(restaurant_cart=obj.restaurant_cart)
+        for item in cart_items:
+            result = item.food.price * item.quantity
+            sum += result
 
-
+        sum += obj.restaurant_cart.restaurant.delivery_price
+        obj.total_price = sum
+        obj.save()
+        return sum
 
 
 

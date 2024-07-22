@@ -27,4 +27,5 @@ urlpatterns = [
     path('rating/',include('rating.urls')),
     path('comment/',include('comment.urls')),
     path('cart/',include('cart.urls')),
+    path('zarinpal/',include('zarinpal.urls')),
 ]

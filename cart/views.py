@@ -61,7 +61,11 @@ class CartItemViewset(ModelViewSet):
                     restaurant_cart_item = Restaurant_cart_item.objects.create(restaurant_cart=restaurant_cart,food=food)
                     return Response({"message":"created succsesfully","data":serializer.data},status=status.HTTP_201_CREATED)
                 else:
-                    return Response({"message": "this food already exist in your cart you can update quantity of food"},status=status.HTTP_400_BAD_REQUEST)
+                    item = Restaurant_cart_item.objects.all().filter(restaurant_cart=restaurant_cart).filter(food=food).first()
+                    item.quantity += 1
+                    item.save()
+
+                    return Response({"message": "quantity of food plus one"},status=status.HTTP_200_OK)
         else:
             return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
 
@@ -76,6 +80,9 @@ class CartItemViewset(ModelViewSet):
                 cart = instance.restaurant_cart
                 if Restaurant_cart_item.objects.all().filter(restaurant_cart=cart).first() is None:
                     cart.delete()
+                    order = Order.objects.all().filter(restaurant_cart=cart).filter(restaurant_cart__customer__user=request.user).first()
+                    if order is not None:
+                        order.delete()
                 return Response({"message":"remove this cart item from your cart"},status=status.HTTP_200_OK)
             else:
                 instance.quantity = quantity
@@ -94,6 +101,14 @@ class CartViewset(ModelViewSet):
 
     def get_queryset(self):
         return Restaurant_cart.objects.all().filter(customer__user=self.request.user)
+
+    def __delete__(self, instance):
+        instance.delete()
+        order = Order.objects.all().filter(restaurant_cart=instance)\
+            .filter(restaurant_cart__customer__user=self.request.user).first()
+        if order is not None:
+            order.delete()
+        return Response({"message":"delete cart secsessfully"},status=status.HTTP_204_NO_CONTENT)
 
 
 
@@ -135,7 +150,11 @@ class CartItemNestedViewset(ModelViewSet):
                     restaurant_cart_item = Restaurant_cart_item.objects.create(restaurant_cart=restaurant_cart,food=food)
                     return Response({"message":"created succsesfully","data":serializer.data},status=status.HTTP_201_CREATED)
                 else:
-                    return Response({"message": "this food already exist in your cart you can update quantity of food"},status=status.HTTP_400_BAD_REQUEST)
+                    item = Restaurant_cart_item.objects.all().filter(restaurant_cart=restaurant_cart).filter(food=food).first()
+                    item.quantity += 1
+                    item.save()
+
+                    return Response({"message": "quantity of food plus one"},status=status.HTTP_200_OK)
         else:
             return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
 
@@ -152,6 +171,10 @@ class CartItemNestedViewset(ModelViewSet):
                 cart = instance.restaurant_cart
                 if Restaurant_cart_item.objects.all().filter(restaurant_cart=cart).first() is None:
                     cart.delete()
+                    order = Order.objects.all().filter(restaurant_cart=cart).filter(restaurant_cart__customer__user=request.user).first()
+                    if order is not None:
+                        order.delete()
+
                 return Response({"message":"remove this cart item from your cart"},status=status.HTTP_200_OK)
             else:
                 instance.quantity = quantity
@@ -160,6 +183,69 @@ class CartItemNestedViewset(ModelViewSet):
 
         else:
             return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+
+
+class OrderViewset(ModelViewSet):
+    http_method_names = ['get','post']
+    permission_classes = [IsCustomer]
+
+    def get_queryset(self):
+        return Order.objects.filter(restaurant_cart=self.kwargs['cart_pk'])\
+            .filter(restaurant_cart__customer__user=self.request.user)
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return AddOrderSerializer
+        else:
+            return ShowOrderSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = AddOrderSerializer(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            restaurant_cart_id = self.kwargs['cart_pk']
+            restaurant_cart = get_object_or_404(Restaurant_cart,id=restaurant_cart_id)
+            cart_items = Restaurant_cart_item.objects.all().filter(restaurant_cart=restaurant_cart)\
+                        .filter(restaurant_cart__customer__user=request.user)
+            sum =0
+            for item in cart_items:
+                result = item.food.price * item.quantity
+                sum += result
+            sum += restaurant_cart.restaurant.delivery_price
+            total_price = sum
+            if Order.objects.all().filter(restaurant_cart=restaurant_cart)\
+                .filter(restaurant_cart__customer__user=request.user).first() is None:
+                order = Order.objects.create(restaurant_cart=restaurant_cart,total_price=total_price)
+                return Response({"message":"order is created"},status=status.HTTP_201_CREATED)
+            else:
+                order = Order.objects.all().filter(restaurant_cart=restaurant_cart)\
+                .filter(restaurant_cart__customer__user=request.user).first()
+                order.delete()
+                order = Order.objects.create(restaurant_cart=restaurant_cart, total_price=total_price)
+                return Response({"message": "order is created"}, status=status.HTTP_201_CREATED)
+        else:
+            return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
