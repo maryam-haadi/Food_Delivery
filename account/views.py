@@ -198,26 +198,30 @@ class OwnerRegisterViews(GenericViewSet,mixins.CreateModelMixin):
     def create(self, request, *args, **kwargs):
         serializer = OwnerRegisterSerializer(data=request.data)
         if serializer.is_valid(raise_exception=True):
-            owner = serializer.save()
-            otp_code = generate_otp(6)
-            owner.user.otp = otp_code
-            owner.user.otp_expire_time = timezone.now() + timedelta(minutes=8)
-            owner.user.save()
-            message = f'your verification code is :{otp_code}'
-            payload = {
-                'username': '989116968310',
-                'password': 'E8Y!4',
-                'to':serializer.data['phone_number'],
-                'text':message
-            }
-            response = requests.post(url, data=payload)
-            print(otp_code)
-            print(response.json())
-
-            if response.status_code == 200:
-                return Response({'message': 'message send successfully'},status=status.HTTP_200_OK)
+            phone_number = serializer.data['phone_number']
+            if Owner.objects.all().filter(user__phone_number=phone_number).first() is not None:
+                return Response({"message":"this phone number already exist"},status=status.HTTP_400_BAD_REQUEST)
             else:
-                return Response({'message': 'message unsend'}, status=status.HTTP_400_BAD_REQUEST)
+                owner = serializer.save()
+                otp_code = generate_otp(6)
+                owner.user.otp = otp_code
+                owner.user.otp_expire_time = timezone.now() + timedelta(minutes=8)
+                owner.user.save()
+                message = f'your verification code is :{otp_code}'
+                payload = {
+                    'username': '989116968310',
+                    'password': 'E8Y!4',
+                    'to':serializer.data['phone_number'],
+                    'text':message
+                }
+                response = requests.post(url, data=payload)
+                print(otp_code)
+                print(response.json())
+
+                if response.status_code == 200:
+                    return Response({'message': 'message send successfully'},status=status.HTTP_200_OK)
+                else:
+                    return Response({'message': 'message unsend'}, status=status.HTTP_400_BAD_REQUEST)
 
         else:
             return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)

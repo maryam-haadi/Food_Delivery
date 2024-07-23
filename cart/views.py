@@ -190,44 +190,71 @@ class CartItemNestedViewset(ModelViewSet):
 
 
 class OrderViewset(ModelViewSet):
-    http_method_names = ['get','post']
+    def get_distance(self,user_lat, user_long, res_lat, res_long):
+
+        earth_radius = 6371
+
+        user_lat = radians(user_lat)
+        user_long = radians(user_long)
+        restaurant_lat = radians(res_lat)
+        restaurant_long = radians(res_long)
+        dlon = restaurant_long - user_long
+        dlat = restaurant_lat - user_lat
+        a = sin(dlat / 2) * sin(dlat / 2) + cos(user_lat) * cos(restaurant_lat) * sin(dlon / 2) * sin(dlon / 2)
+        c = 2 * asin(sqrt(a))
+        distance = earth_radius * c
+        return distance
+
+
+    http_method_names = ['get','put']
     permission_classes = [IsCustomer]
 
     def get_queryset(self):
-        return Order.objects.filter(restaurant_cart=self.kwargs['cart_pk'])\
-            .filter(restaurant_cart__customer__user=self.request.user)
+        if Order.objects.filter(restaurant_cart=self.kwargs['cart_pk']).filter(restaurant_cart__customer__user=self.request.user).first() is None:
+            customer = Customer.objects.all().filter(user=self.request.user).first()
+            order = Order.objects.create(restaurant_cart=self.kwargs['cart_pk'],
+                                         delivery_address_name=customer.address_name,
+                                         latitude=customer.latitude,
+                                         longitude=customer.longitude)
+
+            return Order.objects.filter(restaurant_cart=self.kwargs['cart_pk'])\
+                .filter(restaurant_cart__customer__user=self.request.user)
+        else:
+            return Order.objects.filter(restaurant_cart=self.kwargs['cart_pk'])\
+                .filter(restaurant_cart__customer__user=self.request.user)
+
 
     def get_serializer_class(self):
-        if self.request.method == 'POST':
-            return AddOrderSerializer
-        else:
+        if self.request.method == 'GET':
             return ShowOrderSerializer
+        else:
+            return UpdateOrderAddressSerializer
 
-    def create(self, request, *args, **kwargs):
-        serializer = AddOrderSerializer(data=request.data)
+
+
+    def update(self, request,pk,**kwargs):
+        order = get_object_or_404(Order,pk=pk)
+        serializer = UpdateOrderAddressSerializer(data=request.data)
         if serializer.is_valid(raise_exception=True):
-            restaurant_cart_id = self.kwargs['cart_pk']
-            restaurant_cart = get_object_or_404(Restaurant_cart,id=restaurant_cart_id)
-            cart_items = Restaurant_cart_item.objects.all().filter(restaurant_cart=restaurant_cart)\
-                        .filter(restaurant_cart__customer__user=request.user)
-            sum =0
-            for item in cart_items:
-                result = item.food.price * item.quantity
-                sum += result
-            sum += restaurant_cart.restaurant.delivery_price
-            total_price = sum
-            if Order.objects.all().filter(restaurant_cart=restaurant_cart)\
-                .filter(restaurant_cart__customer__user=request.user).first() is None:
-                order = Order.objects.create(restaurant_cart=restaurant_cart,total_price=total_price)
-                return Response({"message":"order is created"},status=status.HTTP_201_CREATED)
+            restaurant_cart_pk = self.kwargs['cart_pk']
+            res_cart = get_object_or_404(Restaurant_cart,pk=restaurant_cart_pk)
+            restaurant = res_cart.restaurant
+            customer_lat = serializer.validated_data['latitude']
+            customer_long = serializer.validated_data['longitude']
+
+            dist = self.get_distance(customer_lat,customer_long,restaurant.latitude,restaurant.longitude)
+            print("distance",dist)
+            if dist > 5000:
+                return Response({"message":"Your selected address is outside the restaurant area"},status=status.HTTP_400_BAD_REQUEST)
             else:
-                order = Order.objects.all().filter(restaurant_cart=restaurant_cart)\
-                .filter(restaurant_cart__customer__user=request.user).first()
-                order.delete()
-                order = Order.objects.create(restaurant_cart=restaurant_cart, total_price=total_price)
-                return Response({"message": "order is created"}, status=status.HTTP_201_CREATED)
+                order.delivery_address_name = serializer.validated_data['delivery_address_name']
+                order.latitude = customer_lat
+                order.longitude = customer_long
+                order.save()
+                return Response({"message":"updated address sucssesfully","data":serializer.data},status=status.HTTP_200_OK)
         else:
             return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+
 
 
 

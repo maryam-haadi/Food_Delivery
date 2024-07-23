@@ -34,6 +34,9 @@ class Restaurant_cart_item(models.Model):
 
 class Order(models.Model):
     restaurant_cart = models.OneToOneField('Restaurant_cart',on_delete=models.CASCADE)
+    delivery_address_name = models.CharField(max_length=200,blank=True,null=True)
+    latitude = models.FloatField(blank=True,null=True)
+    longitude = models.FloatField(blank=True,null=True)
     total_price = models.DecimalField(max_digits=10,decimal_places=2,blank=True,null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     paid = models.BooleanField(default=False,blank=True)

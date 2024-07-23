@@ -54,10 +54,6 @@ class Updatecartitemserializer(serializers.ModelSerializer):
 
 
 
-class AddOrderSerializer(serializers.ModelSerializer):
-    class Meta:
-        model =Order
-        fields = []
 
 class ShowOrderSerializer(serializers.ModelSerializer):
 
@@ -66,7 +62,7 @@ class ShowOrderSerializer(serializers.ModelSerializer):
     total_order = serializers.SerializerMethodField(method_name='get_total_order',read_only=True)
     class Meta:
         model = Order
-        fields = ['id','delivery_price','total_order','total_price']
+        fields = ['id','delivery_price','total_order','total_price','delivery_address_name','latitude','longitude']
 
     def get_delivery_price(self,obj:Order):
         return obj.restaurant_cart.restaurant.delivery_price
@@ -92,6 +88,11 @@ class ShowOrderSerializer(serializers.ModelSerializer):
         return sum
 
 
+
+class UpdateOrderAddressSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Order
+        fields = ['delivery_address_name','latitude','longitude']
 
 
 
