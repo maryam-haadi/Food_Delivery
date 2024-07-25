@@ -24,7 +24,20 @@ from rating.serializers import *
 
 
 
-class RestaurantRangeView(GenericViewSet,mixins.ListModelMixin,mixins.RetrieveModelMixin):
+class RestaurantRangeView(ModelViewSet):
+
+    http_method_names = ['get']
+    permission_classes = [IsCustomer]
+    serializer_class = RestaurantRangeSerializer
+
+    def get_queryset(self):
+        return Restaurant.objects.all().filter(owner__type__storetype_name='restaurant')
+
+    def get_serializer_context(self):
+        context = super(RestaurantRangeView, self).get_serializer_context()
+        context.update({"user": self.request.user})
+        return context
+
 
     def get_distance(self,user_lat, user_long, res_lat, res_long):
 
@@ -40,23 +53,6 @@ class RestaurantRangeView(GenericViewSet,mixins.ListModelMixin,mixins.RetrieveMo
         c = 2 * asin(sqrt(a))
         distance = earth_radius * c
         return distance
-
-
-    def get_serializer_context(self):
-        return {"user":self.request.user}
-
-
-    def get_queryset(self):
-        return Restaurant.objects.all().filter(owner__type__storetype_name='restaurant')
-
-    permission_classes = [IsCustomer]
-
-    http_method_names = ['get']
-
-
-    serializer_class = RestaurantRangeSerializer
-
-
     def list(self, request, *args, **kwargs):
         nearby_restaurant =[]
         distances=[]

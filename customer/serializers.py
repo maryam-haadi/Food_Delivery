@@ -7,7 +7,7 @@ from datetime import  timedelta, datetime
 from math import radians,sin,cos,sqrt,asin
 from core.serializers import *
 from account.serializers import *
-
+from django.shortcuts import get_object_or_404
 
 
 class RestaurantListSerializer(serializers.ModelSerializer):
@@ -69,7 +69,7 @@ class RestaurantRangeSerializer(serializers.ModelSerializer):
 
 
     def get_distance(self,restaurant:Restaurant):
-        user=self.context['user']
+        user=self.context["user"]
         customer= get_object_or_404(Customer,user=user)
         user_address_lat = customer.latitude
         user_address_long = customer.longitude
@@ -90,6 +90,7 @@ class RestaurantRangeSerializer(serializers.ModelSerializer):
             return distance
 
     def get_is_active(self,restaurant:Restaurant):
+        print(self.context)
         if datetime.now().time() < restaurant.close_time and datetime.now().time() > restaurant.open_time:
             check = True
         else:
