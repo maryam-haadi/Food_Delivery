@@ -14,6 +14,7 @@ from rest_framework.response import Response
 from  customer.permissions import IsCustomer
 from rating.serializers import RatingPostSerializer
 from rating.models import Rating
+from cart.models import *
 
 class RestaurantView(ModelViewSet):
     def get_queryset(self):
@@ -45,7 +46,26 @@ class RestaurantView(ModelViewSet):
         if serializer.is_valid(raise_exception=True):
             user = self.request.user
             owner = user.owner
-            restaurant = Restaurant.objects.create(owner=owner,**serializer.validated_data)
+            image = serializer.validated_data['image']
+            print("image ------",image)
+            category = serializer.validated_data['category']
+            delivery_time = serializer.validated_data['delivery_time']
+            min_cart_price = serializer.validated_data['min_cart_price']
+            delivery_price = serializer.validated_data['delivery_price']
+            name = serializer.validated_data['name']
+            phone_number = serializer.validated_data['phone_number']
+            open_time = serializer.validated_data['open_time']
+            close_time = serializer.validated_data['close_time']
+            address_name = serializer.validated_data['address_name']
+            latitude = serializer.validated_data['latitude']
+            longitude = serializer.validated_data['longitude']
+
+            restaurant = Restaurant.objects.create(owner=owner,category=category,delivery_time=delivery_time,
+                                                   delivery_price=delivery_price,name=name,phone_number=phone_number,
+                                                   open_time=open_time,close_time=close_time,address_name=address_name,latitude=latitude,
+                                                   longitude=longitude,min_cart_price=min_cart_price)
+            restaurant.image = image
+            restaurant.save()
             menu = Menu.objects.create(restaurant=restaurant)
             return Response({"message":"create restaurant seccessfully ","data":serializer.data}
                             ,status=status.HTTP_201_CREATED)
@@ -59,7 +79,6 @@ class RestaurantView(ModelViewSet):
 
 class FoodViewset(ModelViewSet):
     permission_classes = [IsRestuarantExist]
-    serializer_class = FoodSerializer
 
     def get_queryset(self):
         user = self.request.user

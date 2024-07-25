@@ -198,7 +198,7 @@ class OwnerRegisterViews(GenericViewSet,mixins.CreateModelMixin):
     def create(self, request, *args, **kwargs):
         serializer = OwnerRegisterSerializer(data=request.data)
         if serializer.is_valid(raise_exception=True):
-            phone_number = serializer.data['phone_number']
+            phone_number = serializer.validated_data['user']['phone_number']
             if Owner.objects.all().filter(user__phone_number=phone_number).first() is not None:
                 return Response({"message":"this phone number already exist"},status=status.HTTP_400_BAD_REQUEST)
             else:
@@ -211,7 +211,7 @@ class OwnerRegisterViews(GenericViewSet,mixins.CreateModelMixin):
                 payload = {
                     'username': '989116968310',
                     'password': 'E8Y!4',
-                    'to':serializer.data['phone_number'],
+                    'to':serializer.validated_data['user']['phone_number'],
                     'text':message
                 }
                 response = requests.post(url, data=payload)

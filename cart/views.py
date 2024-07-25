@@ -209,17 +209,32 @@ class OrderViewset(ModelViewSet):
     http_method_names = ['get','put']
     permission_classes = [IsCustomer]
 
+    def get_serializer_context(self):
+        res_cart = get_object_or_404(Restaurant_cart,pk=self.kwargs['cart_pk'])
+
+        return {"min_price":res_cart.restaurant.min_cart_price}
+
     def get_queryset(self):
         if Order.objects.filter(restaurant_cart=self.kwargs['cart_pk']).filter(restaurant_cart__customer__user=self.request.user).first() is None:
             customer = Customer.objects.all().filter(user=self.request.user).first()
-            order = Order.objects.create(restaurant_cart=self.kwargs['cart_pk'],
+            order = Order.objects.create(restaurant_cart_id=self.kwargs['cart_pk'],
                                          delivery_address_name=customer.address_name,
                                          latitude=customer.latitude,
                                          longitude=customer.longitude)
+            print(order.total_price)
+
 
             return Order.objects.filter(restaurant_cart=self.kwargs['cart_pk'])\
                 .filter(restaurant_cart__customer__user=self.request.user)
         else:
+            order = Order.objects.filter(restaurant_cart=self.kwargs['cart_pk'])\
+                .filter(restaurant_cart__customer__user=self.request.user).first()
+
+            total_price = order.total_price
+            delivery_price = order.restaurant_cart.restaurant.delivery_price
+            total_order = total_price - delivery_price
+            # if total_order < order.restaurant_cart.restaurant.min_cart_price:
+            #     return  Response({"message":"errorrr"})
             return Order.objects.filter(restaurant_cart=self.kwargs['cart_pk'])\
                 .filter(restaurant_cart__customer__user=self.request.user)
 

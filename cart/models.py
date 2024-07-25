@@ -40,6 +40,8 @@ class Order(models.Model):
     total_price = models.DecimalField(max_digits=10,decimal_places=2,blank=True,null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     paid = models.BooleanField(default=False,blank=True)
+    owner_approval = models.BooleanField(default=False,blank=True)
+    is_compelete = models.BooleanField(default=False,blank=True)
 
 
     def __str__(self):

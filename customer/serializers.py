@@ -70,7 +70,7 @@ class RestaurantRangeSerializer(serializers.ModelSerializer):
 
     def get_distance(self,restaurant:Restaurant):
         user=self.context['user']
-        customer=get_object_or_404(Customer,user=user)
+        customer= get_object_or_404(Customer,user=user)
         user_address_lat = customer.latitude
         user_address_long = customer.longitude
         if user_address_lat is None or user_address_long is None:

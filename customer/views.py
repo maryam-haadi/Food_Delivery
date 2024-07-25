@@ -69,12 +69,15 @@ class RestaurantRangeView(GenericViewSet,mixins.ListModelMixin,mixins.RetrieveMo
             for restaurant in restaurants:
                 distance =self.get_distance(user_addr_lat,user_addr_long,
                                     restaurant.latitude,restaurant.longitude)
-                if distance < 5000:
+                print("disttttttt", distance)
+                if distance < 50000:
                     nearby_restaurant.append(restaurant)
                     distances.append(distance)
 
+
             serializer = self.get_serializer(nearby_restaurant,many=True)
             return Response({"distance":distances,"data":serializer.data})
+
 
         else:
             restaurants = Restaurant.objects.all().filter(owner__type__storetype_name='restaurant')
@@ -133,6 +136,8 @@ class CofeTypeViewset(GenericViewSet,mixins.ListModelMixin,mixins.RetrieveModelM
                 if distance < 5000:
                     nearby_restaurant.append(restaurant)
                     distances.append(distance)
+
+                print(distances)
 
             serializer = self.get_serializer(nearby_restaurant,many=True)
             return Response({"distance":distances,"data":serializer.data})

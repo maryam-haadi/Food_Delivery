@@ -64,6 +64,12 @@ class ShowOrderSerializer(serializers.ModelSerializer):
         model = Order
         fields = ['id','delivery_price','total_order','total_price','delivery_address_name','latitude','longitude']
 
+    def validate(self, attrs):
+        print("ggggggggggggggg")
+        if attrs['total_order'] < self.context['min_price']:
+            return serializers.ValidationError(f"min cart price must  {self.context['min_price']}")
+        return attrs
+
     def get_delivery_price(self,obj:Order):
         return obj.restaurant_cart.restaurant.delivery_price
     def get_total_order(self,obj:Order):

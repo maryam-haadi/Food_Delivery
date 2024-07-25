@@ -121,8 +121,6 @@ class StoreType(models.Model):
 
 class Owner(models.Model):
     user = models.OneToOneField(User,on_delete=models.CASCADE,related_name='owner',blank=True)
-    owner_address = models.CharField(max_length=255,blank=False)
-    city = models.CharField(max_length=200)
     stores_name = models.CharField(max_length=200)
     type = models.ForeignKey('StoreType',on_delete=models.PROTECT,related_name='owners')
 
