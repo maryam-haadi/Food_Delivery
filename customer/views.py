@@ -170,6 +170,9 @@ class RestaurantFoodsViewset(GenericViewSet,mixins.RetrieveModelMixin,mixins.Lis
         menu = Menu.objects.all().filter(restaurant_id=restaurant_id).first()
         return Food.objects.all().filter(menu=menu)
 
+    def get_serializer_context(self):
+        return {"request":self.request}
+
 
 
 
