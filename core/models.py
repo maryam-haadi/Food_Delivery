@@ -81,6 +81,9 @@ class Restaurant(models.Model):
             self.is_open = False
         super(Restaurant, self).create(*args, **kwargs)
 
+    def __str__(self):
+        return f"restaurant name : {self.name} restaurant id : {self.id}"
+
 
 
 
@@ -108,6 +111,9 @@ class Favorite(models.Model):
     class Meta:
         unique_together=('user','restaurant')
 
+    def __str__(self):
+        return f"favorite restaurant for user :{self.user.phone_number} is {self.restaurant.name} "
+
 
 
 
@@ -117,6 +123,9 @@ class Menu(models.Model):
 
     class Meta:
         unique_together=('restaurant',)
+
+    def __str__(self):
+        return f"menu for restaurant : {self.restaurant.name}"
 
 
 
@@ -128,6 +137,9 @@ class Food(models.Model):
     name = models.CharField(max_length=150,blank=False)
     desc = models.TextField(blank=True)
     price = models.DecimalField(max_digits=10,decimal_places=2,blank=False)
+
+    def __str__(self):
+        return f"food name : {self.name} with id : {self.id} for restaurant : {self.menu.restaurant.name}"
 
 
 

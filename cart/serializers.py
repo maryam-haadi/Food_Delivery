@@ -60,15 +60,11 @@ class ShowOrderSerializer(serializers.ModelSerializer):
     delivery_price = serializers.SerializerMethodField(method_name='get_delivery_price',read_only=True)
     total_price = serializers.SerializerMethodField(method_name='get_total_price',read_only=True)
     total_order = serializers.SerializerMethodField(method_name='get_total_order',read_only=True)
+    detail = serializers.SerializerMethodField(method_name='get_details',read_only=True)
     class Meta:
         model = Order
-        fields = ['id','delivery_price','total_order','total_price','delivery_address_name','latitude','longitude']
+        fields = ['id','delivery_price','total_order','total_price','delivery_address_name','latitude','longitude','detail']
 
-    def validate(self, attrs):
-        print("ggggggggggggggg")
-        if attrs['total_order'] < self.context['min_price']:
-            return serializers.ValidationError(f"min cart price must  {self.context['min_price']}")
-        return attrs
 
     def get_delivery_price(self,obj:Order):
         return obj.restaurant_cart.restaurant.delivery_price
@@ -92,6 +88,13 @@ class ShowOrderSerializer(serializers.ModelSerializer):
         obj.total_price = sum
         obj.save()
         return sum
+
+    def get_details(self,obj:Order):
+        cart_items = Restaurant_cart_item.objects.all().filter(restaurant_cart=obj.restaurant_cart)
+        food_list = []
+        for item in cart_items:
+            food_list.append(f"food : {item.food.name} - quantity : {item.quantity} - price : {item.food.price * item.quantity}")
+        return food_list
 
 
 

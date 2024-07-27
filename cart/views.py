@@ -215,26 +215,7 @@ class OrderViewset(ModelViewSet):
         return {"min_price":res_cart.restaurant.min_cart_price}
 
     def get_queryset(self):
-        if Order.objects.filter(restaurant_cart=self.kwargs['cart_pk']).filter(restaurant_cart__customer__user=self.request.user).first() is None:
-            customer = Customer.objects.all().filter(user=self.request.user).first()
-            order = Order.objects.create(restaurant_cart_id=self.kwargs['cart_pk'],
-                                         delivery_address_name=customer.address_name,
-                                         latitude=customer.latitude,
-                                         longitude=customer.longitude)
-            print(order.total_price)
 
-
-            return Order.objects.filter(restaurant_cart=self.kwargs['cart_pk'])\
-                .filter(restaurant_cart__customer__user=self.request.user)
-        else:
-            order = Order.objects.filter(restaurant_cart=self.kwargs['cart_pk'])\
-                .filter(restaurant_cart__customer__user=self.request.user).first()
-
-            total_price = order.total_price
-            delivery_price = order.restaurant_cart.restaurant.delivery_price
-            total_order = total_price - delivery_price
-            # if total_order < order.restaurant_cart.restaurant.min_cart_price:
-            #     return  Response({"message":"errorrr"})
             return Order.objects.filter(restaurant_cart=self.kwargs['cart_pk'])\
                 .filter(restaurant_cart__customer__user=self.request.user)
 
@@ -269,6 +250,46 @@ class OrderViewset(ModelViewSet):
                 return Response({"message":"updated address sucssesfully","data":serializer.data},status=status.HTTP_200_OK)
         else:
             return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+
+
+
+    def list(self, request, *args, **kwargs):
+
+        if Order.objects.filter(restaurant_cart=self.kwargs['cart_pk']).filter(restaurant_cart__customer__user=self.request.user).first() is None:
+            id = self.kwargs['cart_pk']
+            restaurant_cart = get_object_or_404(Restaurant_cart,id=id)
+            cart_items = Restaurant_cart_item.objects.all().filter(restaurant_cart_id=id)
+            min_price =restaurant_cart.restaurant.min_cart_price
+            total = 0
+            for item in cart_items:
+                total+=item.quantity * item.food.price
+
+            if total < min_price:
+                return Response({"message":f"Your minimum purchase must {min_price}"},status=status.HTTP_400_BAD_REQUEST)
+            else:
+                customer = Customer.objects.all().filter(user=self.request.user).first()
+                order = Order.objects.create(restaurant_cart_id=self.kwargs['cart_pk'],
+                                             delivery_address_name=customer.address_name,
+                                             latitude=customer.latitude,
+                                             longitude=customer.longitude)
+
+                serializer = ShowOrderSerializer(instance=order,many=False)
+                return Response({"message":"order for you","data":serializer.data},status=status.HTTP_201_CREATED)
+        else:
+            order = Order.objects.filter(restaurant_cart=self.kwargs['cart_pk'])\
+                .filter(restaurant_cart__customer__user=self.request.user).first()
+
+            total_price = order.total_price
+            delivery_price = order.restaurant_cart.restaurant.delivery_price
+            total_order = total_price - delivery_price
+            if total_order < order.restaurant_cart.restaurant.min_cart_price:
+                return Response({"message":f"Your minimum purchase must {order.restaurant_cart.restaurant.min_cart_price}"},status=status.HTTP_400_BAD_REQUEST)
+            else:
+                serializer = ShowOrderSerializer(instance=order,many=False)
+                return Response({"data":serializer.data},status=status.HTTP_200_OK)
+
+
+
 
 
 
