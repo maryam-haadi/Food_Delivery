@@ -125,7 +125,7 @@ class VerifyView(mixins.CreateModelMixin,GenericViewSet):
                     user.is_verified = True
                     user.save()
                     user.change_address_time = user.last_login + timedelta(hours=1)
-                    return Response({'refresh': str(refresh),'access': str(refresh.access_token),},
+                    return Response({'refresh': str(refresh),'access': str(refresh.access_token),'is_owner':user.is_owner,'is_customer':user.is_customer},
                     status=status.HTTP_200_OK)
                 else:
                     if user.otp != otp:
