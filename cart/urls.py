@@ -6,9 +6,10 @@ from django.urls import reverse
 
 
 router = DefaultRouter()
-router.register(r'add_cart_items',CartItemViewset,basename='cart_item')
+# router.register(r'add_cart_items',CartItemViewset,basename='cart_item')
 router.register(r'carts',CartViewset,basename='carts')
-
+router.register(r'payment',CreatePaymentViewSet,basename='payment')
+router.register(r'verifypayment',VerifyPaymentViewSet,basename='verify-payment')
 
 
 
@@ -19,6 +20,7 @@ cart_cartitem_router.register(r'items',CartItemNestedViewset,basename='cart-item
 
 cart_order_router=routers.NestedDefaultRouter(router,'carts',lookup='cart')
 cart_order_router.register(r'order',OrderViewset,basename='cart-order')
+
 
 
 

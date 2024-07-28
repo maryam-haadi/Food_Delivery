@@ -2,6 +2,7 @@ from rest_framework import serializers
 from .models import Restaurant_cart,Restaurant_cart_item,Order,Payment
 from core.serializers import FoodShowSerializer
 from core.models import Restaurant
+import random
 
 class ResInformationSerializer(serializers.ModelSerializer):
     class Meta:
@@ -20,9 +21,24 @@ class ResInformationSerializer(serializers.ModelSerializer):
 
 class CartShowSerializer(serializers.ModelSerializer):
     restaurant = ResInformationSerializer()
+    detail = serializers.SerializerMethodField(method_name='get_detail',read_only=True)
     class Meta:
         model = Restaurant_cart
-        fields =['id','restaurant','created_at','updated_at']
+        fields =['id','restaurant','created_at','updated_at','detail','is_compelete']
+
+    def get_detail(self,obj:Restaurant_cart):
+        cart_items = Restaurant_cart_item.objects.all().filter(restaurant_cart=obj)
+        food_list = []
+        for item in cart_items:
+            food_list.append(f"food : {item.food.name} - quantity : {item.quantity} ")
+        return food_list
+
+
+class CartPostSerializer(serializers.ModelSerializer):
+    res_id = serializers.IntegerField(source='restaurant.id')
+    class Meta:
+        model = Restaurant_cart
+        fields = ['res_id']
 
 
 class Addcartitemserializer(serializers.ModelSerializer):
@@ -63,7 +79,7 @@ class ShowOrderSerializer(serializers.ModelSerializer):
     detail = serializers.SerializerMethodField(method_name='get_details',read_only=True)
     class Meta:
         model = Order
-        fields = ['id','delivery_price','total_order','total_price','delivery_address_name','latitude','longitude','detail']
+        fields = ['id','delivery_price','total_order','total_price','delivery_address_name','latitude','longitude','detail','paid']
 
 
     def get_delivery_price(self,obj:Order):
@@ -106,7 +122,19 @@ class UpdateOrderAddressSerializer(serializers.ModelSerializer):
 
 
 
+class CreatePaymentSerializer(serializers.ModelSerializer):
+    order_id = serializers.IntegerField(source='order.id')
 
+    class Meta:
+        model = Payment
+        fields = ['order_id','origin_card_number','cvv2']
+
+
+class VerifyPaymentSerializer(serializers.ModelSerializer):
+    order_id = serializers.IntegerField(source='order.id')
+    class Meta:
+        model = Payment
+        fields = ['order_id','origin_card_number','cvv2','daynamic_password','verification']
 
 
 
