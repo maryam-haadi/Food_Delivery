@@ -178,5 +178,8 @@ class DeleteRestaurantRequestShowSerializer(serializers.ModelSerializer):
 
 
 
-
+class FoodCategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FoodCategory
+        fields = '__all__'
 
