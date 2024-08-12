@@ -29,7 +29,6 @@ urlpatterns = [
     path('rating/',include('rating.urls')),
     path('comment/',include('comment.urls')),
     path('cart/',include('cart.urls')),
-    path('zarinpal/',include('zarinpal.urls')),
 ]
 urlpatterns+=static(settings.STATIC_URL,document_root=settings.STATIC_ROOT)
 urlpatterns+=static(settings.MEDIA_URL,document_root=settings.MEDIA_ROOT)

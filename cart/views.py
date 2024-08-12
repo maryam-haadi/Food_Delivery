@@ -440,7 +440,22 @@ class VerifyPaymentViewSet(ModelViewSet):
                      payment.order.restaurant_cart.save()
                      payment.order.save()
                      payment.save()
-                     return Response({"message":"Your payment has been successfully completed"},status=status.HTTP_200_OK)
+
+                     message = f"You have an order from the customer with phone number  {payment.order.restaurant_cart.customer.user.phone_number}"
+                     payload = {
+                         'username': '989116968310',
+                         'password': 'E8Y!4',
+                         'to': payment.order.restaurant_cart.restaurant.owner.user.phone_number,
+                         'text': message
+                     }
+                     response = requests.post(url, data=payload)
+
+                     if response.status_code == 200:
+                         return Response({"message": "Your payment has been successfully completed"},
+                                         status=status.HTTP_200_OK)
+                     else:
+                         return Response({"error": "unsend message"}, status=status.HTTP_400_BAD_REQUEST)
+
                 else:
                     return Response({"message":"your payment verification incorrect"},status=status.HTTP_400_BAD_REQUEST)
             else:

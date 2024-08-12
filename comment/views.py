@@ -21,6 +21,7 @@ from customer.permissions import *
 from rest_framework.decorators import api_view,permission_classes
 from core.permissions import *
 from rating.models import *
+from cart.models import *
 # Create your views here.
 
 class CommentPostViewSet(ModelViewSet):
@@ -33,16 +34,18 @@ class CommentPostViewSet(ModelViewSet):
         serializer=CommentPostSerializer(data=request.data)
         if serializer.is_valid(raise_exception=True):
             user=request.user
-            if Rating.objects.all().filter(user=user).exists():
-                text=serializer.validated_data['text']
-                id=serializer.data['food_id']
+            text = serializer.validated_data['text']
+            id = serializer.data['food_id']
+            if Rating.objects.all().filter(user=user).exists() and\
+                    Order.objects.all().filter(restaurant_cart__cart_items__food__id=id).filter(is_compelete=True)\
+                    .first() is not None:
                 food=get_object_or_404(Food,id=id)
                 comment=Comment.objects.create(user=user,text=text,food=food)
                 return Response({"message":"comment created seccsesfully","data":serializer.data}
                                 ,status=status.HTTP_201_CREATED)
 
             else:
-                return Response({"Error":"please at first you must rating this food"},status=status.HTTP_400_BAD_REQUEST)
+                return Response({"Error":"please at first you must rating this food or you dont have any order of this food!!"},status=status.HTTP_400_BAD_REQUEST)
         else:
             return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
 

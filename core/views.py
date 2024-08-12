@@ -181,8 +181,8 @@ class DeleteRestaurantRequestViewset(GenericViewSet,mixins.CreateModelMixin,mixi
 
 
 class FoodCategoryViewset(ModelViewSet):
-    http_method_names = ['GET']
-    permission_classes = [IsAuthenticated]
+    http_method_names = ['get']
+    permission_classes = [AllowAny]
 
     queryset = FoodCategory.objects.all()
     serializer_class = FoodCategorySerializer

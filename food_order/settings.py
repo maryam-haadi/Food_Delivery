@@ -52,7 +52,6 @@ INSTALLED_APPS = [
     'rating',
     'comment',
     'cart',
-    'zarinpal',
 ]
 
 
