@@ -99,6 +99,23 @@ class CartViewset(ModelViewSet):
     permission_classes = [IsCustomer]
     http_method_names = ['get','delete','post']
 
+    def get_distance(self,user_lat, user_long, res_lat, res_long):
+
+        earth_radius = 6371
+
+        user_lat = radians(user_lat)
+        user_long = radians(user_long)
+        restaurant_lat = radians(res_lat)
+        restaurant_long = radians(res_long)
+        dlon = restaurant_long - user_long
+        dlat = restaurant_lat - user_lat
+        a = sin(dlat / 2) * sin(dlat / 2) + cos(user_lat) * cos(restaurant_lat) * sin(dlon / 2) * sin(dlon / 2)
+        c = 2 * asin(sqrt(a))
+        distance = earth_radius * c
+        return distance
+
+
+
     def get_serializer_class(self):
         if self.request.method == 'GET':
             return CartShowSerializer
@@ -115,8 +132,18 @@ class CartViewset(ModelViewSet):
             restaurant = get_object_or_404(Restaurant,id=res_id)
             customer = get_object_or_404(Customer,user=request.user)
             if Restaurant_cart.objects.all().filter(customer=customer).filter(restaurant=restaurant).filter(is_compelete=False).first() is None:
-                cart = Restaurant_cart.objects.create(customer=customer,restaurant=restaurant)
-                return Response({"message":"this cart created successfully"},status=status.HTTP_201_CREATED)
+                if customer.address_name is None or customer.latitude is None or customer.longitude is None:
+                    return Response({"error message":"Please select your address first"},status=status.HTTP_400_BAD_REQUEST)
+                else:
+                    dist = self.get_distance(customer.longitude,customer.longitude,restaurant.latitude,restaurant.longitude)
+                    if dist > 5000:
+                        return Response({"message":"This restaurant is not within your address range"},status=status.HTTP_400_BAD_REQUEST)
+                    else:
+                        if (datetime.now().time() < restaurant.close_time and datetime.now().time() > restaurant.open_time) or restaurant.is_open==True:
+                            cart = Restaurant_cart.objects.create(customer=customer,restaurant=restaurant)
+                            return Response({"message":"this cart created successfully"},status=status.HTTP_201_CREATED)
+                        else:
+                            return Response({"message":"The restaurant is closed"},status=status.HTTP_400_BAD_REQUEST)
             else:
                 return Response({"message":"this cart already exist"})
         else:
@@ -355,10 +382,11 @@ class CreatePaymentViewSet(GenericViewSet,mixins.CreateModelMixin):
             order_id = serializer.validated_data['order']['id']
             origin_card_number = serializer.validated_data['origin_card_number']
             cvv2 = serializer.validated_data['cvv2']
+            order = get_object_or_404(Order,id=order_id)
 
-            if Payment.objects.filter(order_id=order_id).filter(origin_card_number=origin_card_number).\
+            if Payment.objects.filter(order=order).filter(origin_card_number=origin_card_number).\
                 filter(cvv2=cvv2).first() is None:
-                payment = Payment.objects.create(order_id=order_id,origin_card_number=origin_card_number,
+                payment = Payment.objects.create(order=order,origin_card_number=origin_card_number,
                                                 cvv2=cvv2)
 
                 verification = get_verification_code()
@@ -428,7 +456,8 @@ class VerifyPaymentViewSet(ModelViewSet):
             cvv2 = serializer.validated_data['cvv2']
             daynamic_password = serializer.validated_data['daynamic_password']
             verification = serializer.validated_data['verification']
-            payment = Payment.objects.all().filter(order_id=order_id).filter(origin_card_number=origin_card_number).\
+            order = get_object_or_404(Order,id=order_id)
+            payment = Payment.objects.all().filter(order=order).filter(origin_card_number=origin_card_number).\
                 filter(cvv2=cvv2).first()
             if payment is not None and payment.is_complete == False:
                 if payment.verification==verification and payment.daynamic_password==daynamic_password\

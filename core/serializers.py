@@ -185,6 +185,40 @@ class FoodCategorySerializer(serializers.ModelSerializer):
         model = FoodCategory
         fields = '__all__'
 
+
+
+class CustomerSerializer(serializers.ModelSerializer):
+
+    name = serializers.CharField(source='user.name')
+    last_name = serializers.CharField(source='user.last_name')
+    email = serializers.EmailField(
+        source='user.email'
+    )
+    phone_number = serializers.CharField(source='user.phone_number')
+    class Meta:
+        model = Customer
+        fields = ['name','last_name','email','phone_number']
+
+
+
+
+
+class CartShowSerializer(serializers.ModelSerializer):
+    restaurant = ResInformationSerializer()
+    detail = serializers.SerializerMethodField(method_name='get_detail',read_only=True)
+    customer = CustomerSerializer()
+    class Meta:
+        model = Restaurant_cart
+        fields =['id','customer','restaurant','created_at','updated_at','detail','is_compelete']
+
+    def get_detail(self,obj:Restaurant_cart):
+        cart_items = Restaurant_cart_item.objects.all().filter(restaurant_cart=obj)
+        food_list = []
+        for item in cart_items:
+            food_list.append(f"food : {item.food.name} - quantity : {item.quantity} ")
+        return food_list
+
+
 class ShowRestaurantsOrderSerializer(serializers.ModelSerializer):
 
     restaurant_cart = CartShowSerializer()

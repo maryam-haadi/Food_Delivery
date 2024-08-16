@@ -226,7 +226,7 @@ class RestaurantsOrderViewset(ModelViewSet):
                 response = requests.post(url, data=payload)
 
                 if response.status_code == 200:
-                    return Response({"message": "Your payment has been successfully completed"},
+                    return Response({"message": "Your message send successfully "},
                                     status=status.HTTP_200_OK)
                 else:
                     return Response({"error": "unsend message"}, status=status.HTTP_400_BAD_REQUEST)
