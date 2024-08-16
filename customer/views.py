@@ -174,12 +174,40 @@ class RestaurantFoodsViewset(GenericViewSet,mixins.RetrieveModelMixin,mixins.Lis
         return {"request":self.request}
 
 
+class FoodsViewset(GenericViewSet,mixins.RetrieveModelMixin,mixins.ListModelMixin):
+    permission_classes = [IsCustomer]
+    serializer_class = FoodShowSerializer
+    filter_backends = [DjangoFilterBackend,filters.SearchFilter]
+    filterset_fields = ['food_category__category_name']
+    search_fields = ['food_category__category_name','name','desc']
+
+    def get_queryset(self):
+        restaurant_id = self.kwargs['res_pk']
+        menu = Menu.objects.all().filter(restaurant_id=restaurant_id).first()
+        return Food.objects.all().filter(menu=menu)
+
+    def get_serializer_context(self):
+        return {"request":self.request}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
 
 class FavoriteView(ModelViewSet):
-    http_method_names = ['get','post','delete']
+    http_method_names = ['post']
     permission_classes = [IsCustomer]
 
     def get_queryset(self):
@@ -187,9 +215,7 @@ class FavoriteView(ModelViewSet):
         return Favorite.objects.all().filter(user=user)
 
     def get_serializer_class(self):
-        if self.request.method =='GET':
-            return FavoriteListSerializer
-        elif self.request.method == 'POST':
+        if self.request.method == 'POST':
             return FavoritPostSerializer
         else:
             return FavoritPostSerializer
@@ -203,9 +229,15 @@ class FavoriteView(ModelViewSet):
             serializer = FavoriteListSerializer(instance=favorite)
             return Response({"message":"seccessfully saved","data":serializer.data},status=status.HTTP_200_OK)
         else:
-            return Response({"Error":"you can not this operation"},status=status.HTTP_400_BAD_REQUEST)
+            return Response({"Error":"you can not this operation because this restaurant already exist in your favorite list "},status=status.HTTP_400_BAD_REQUEST)
 
 
+class FavoriteListViewset(ModelViewSet):
+    http_method_names = ['get','delete']
+    permission_classes = [IsCustomer]
+    serializer_class = FavoriteListSerializer
+    def get_queryset(self):
+        return Favorite.objects.all().filter(user=self.request.user.id)
 
 
 

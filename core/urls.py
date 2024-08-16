@@ -11,6 +11,7 @@ router.register(r'add_food',FoodViewset,basename='food')
 router.register(r'category_request',FoodCategoryRequestViewset,basename='category-request')
 router.register(r'delete_request',DeleteRestaurantRequestViewset,basename='delete-request')
 router.register(r'food_category',FoodCategoryViewset,basename='food-category')
+router.register(r'restaurants_orders',RestaurantsOrderViewset,basename='orders')
 
 
 

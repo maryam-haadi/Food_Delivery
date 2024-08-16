@@ -15,6 +15,8 @@ from  customer.permissions import IsCustomer
 from rating.serializers import RatingPostSerializer
 from rating.models import Rating
 from cart.models import *
+from cart.serializers import *
+import requests
 
 class RestaurantView(ModelViewSet):
     def get_queryset(self):
@@ -186,6 +188,51 @@ class FoodCategoryViewset(ModelViewSet):
 
     queryset = FoodCategory.objects.all()
     serializer_class = FoodCategorySerializer
+
+
+
+url = "https://rest.payamak-panel.com/api/SendSMS/SendSMS"
+class RestaurantsOrderViewset(ModelViewSet):
+    http_method_names = ['get','delete','put']
+    permission_classes = [IsRestuarantExist]
+
+    def get_queryset(self):
+        return Order.objects.all().filter(paid=True).filter(is_compelete=True)\
+            .filter(restaurant_cart__restaurant__owner__user=self.request.user).filter(owner_approval=False)
+
+    def get_serializer_class(self):
+        if self.request.method == 'GET':
+            return ShowRestaurantsOrderSerializer
+        elif self.request.method == 'PUT':
+            return OwnerApprovalOrdersSerializer
+        else:
+            return ShowRestaurantsOrderSerializer
+
+    def update(self, request,pk):
+        order = get_object_or_404(Order,pk=pk)
+        serializer = OwnerApprovalOrdersSerializer(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            approval = serializer.validated_data['owner_approval']
+            order.owner_approval = approval
+            order.save()
+            if approval == True:
+                message = f"Your order has been confirmed by the restaurant and will be delivered to you in {order.restaurant_cart.restaurant.delivery_time} minutes"
+                payload = {
+                    'username': '989116968310',
+                    'password': 'E8Y!4',
+                    'to': order.restaurant_cart.customer.user.phone_number,
+                    'text': message
+                }
+                response = requests.post(url, data=payload)
+
+                if response.status_code == 200:
+                    return Response({"message": "Your payment has been successfully completed"},
+                                    status=status.HTTP_200_OK)
+                else:
+                    return Response({"error": "unsend message"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"message":"update successfully"},status=status.HTTP_200_OK)
+        else:
+            return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
 
 
 

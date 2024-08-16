@@ -5,6 +5,8 @@ from .models import *
 from rest_framework import serializers
 from datetime import  timedelta, datetime
 from math import radians,sin,cos,sqrt,asin
+from cart.models import *
+from cart.serializers import *
 
 class RestaurantShowSerializer(serializers.ModelSerializer):
 
@@ -183,3 +185,18 @@ class FoodCategorySerializer(serializers.ModelSerializer):
         model = FoodCategory
         fields = '__all__'
 
+class ShowRestaurantsOrderSerializer(serializers.ModelSerializer):
+
+    restaurant_cart = CartShowSerializer()
+
+    class Meta:
+        model = Order
+        fields=['id','restaurant_cart','delivery_address_name','latitude','longitude','total_price','created_at','paid','owner_approval','is_compelete']
+
+
+
+class OwnerApprovalOrdersSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Order
+        fields = ['owner_approval']
