@@ -19,6 +19,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
 from rating.models import *
 from rating.serializers import *
+from .filters import DescendingOrderingFilter
 # Create your views here.
 
 
@@ -32,6 +33,7 @@ class RestaurantRangeView(ModelViewSet):
 
     def get_queryset(self):
         return Restaurant.objects.all().filter(owner__type__storetype_name='restaurant')
+
 
     def get_serializer_context(self):
         context = super(RestaurantRangeView, self).get_serializer_context()
@@ -86,6 +88,19 @@ class RestaurantRangeView(ModelViewSet):
 
 class CofeTypeViewset(GenericViewSet,mixins.ListModelMixin,mixins.RetrieveModelMixin):
 
+    permission_classes = [IsCustomer]
+    http_method_names = ['get']
+    serializer_class = CofeRangeSerializer
+
+    def get_queryset(self):
+        return Restaurant.objects.all().filter(owner__type__storetype_name='cofe')
+
+    def get_serializer_context(self):
+        context = super(CofeTypeViewset, self).get_serializer_context()
+        context.update({"user": self.request.user})
+        return context
+
+
     def get_distance(self,user_lat, user_long, res_lat, res_long):
 
         earth_radius = 6371
@@ -102,19 +117,7 @@ class CofeTypeViewset(GenericViewSet,mixins.ListModelMixin,mixins.RetrieveModelM
         return distance
 
 
-    def get_serializer_context(self):
-        return {"user":self.request.user}
 
-
-    def get_queryset(self):
-        return Restaurant.objects.all().filter(owner__type__storetype_name='cofe')
-
-    permission_classes = [IsCustomer]
-
-    http_method_names = ['get']
-
-
-    serializer_class = RestaurantRangeSerializer
 
 
     def list(self, request, *args, **kwargs):
@@ -151,8 +154,10 @@ class RestaurantsCategoryViewset(GenericViewSet,mixins.ListModelMixin,mixins.Ret
     serializer_class = RestaurantListSerializer
     permission_classes = [IsCustomer]
     queryset = Restaurant.objects.all()
-    filter_backends = [DjangoFilterBackend]
+    filter_backends = [DjangoFilterBackend,filters.OrderingFilter,filters.SearchFilter]
     filterset_fields = ['category']
+    search_fields= ['name','category']
+    ordering_fields = ['average_rating']
 
 
 
@@ -160,10 +165,11 @@ class RestaurantsCategoryViewset(GenericViewSet,mixins.ListModelMixin,mixins.Ret
 
 class RestaurantFoodsViewset(GenericViewSet,mixins.RetrieveModelMixin,mixins.ListModelMixin):
     permission_classes = [IsCustomer]
-    serializer_class = FoodShowSerializer
-    filter_backends = [DjangoFilterBackend,filters.SearchFilter]
+    serializer_class = FoodShowForCustomersSerializer
+    filter_backends = [DjangoFilterBackend,filters.SearchFilter,filters.OrderingFilter]
     filterset_fields = ['food_category__category_name']
     search_fields = ['food_category__category_name','name','desc']
+    ordering_fields = ['average_rating']
 
     def get_queryset(self):
         restaurant_id = self.kwargs['res_pk']
@@ -176,10 +182,11 @@ class RestaurantFoodsViewset(GenericViewSet,mixins.RetrieveModelMixin,mixins.Lis
 
 class FoodsViewset(GenericViewSet,mixins.RetrieveModelMixin,mixins.ListModelMixin):
     permission_classes = [IsCustomer]
-    serializer_class = FoodShowSerializer
-    filter_backends = [DjangoFilterBackend,filters.SearchFilter]
+    serializer_class = FoodShowForCustomersSerializer
+    filter_backends = [DjangoFilterBackend,filters.SearchFilter,filters.OrderingFilter]
     filterset_fields = ['food_category__category_name']
     search_fields = ['food_category__category_name','name','desc']
+    ordering_fields = ['average_rating']
 
     def get_queryset(self):
         restaurant_id = self.kwargs['res_pk']

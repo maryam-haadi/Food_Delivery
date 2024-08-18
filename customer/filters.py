@@ -9,3 +9,15 @@ class RestaurantCategoryFilterBackend(filters.BaseFilterBackend):
             return queryset.filter(restaurant__category=category)
 
         return queryset
+
+
+class DescendingOrderingFilter(filters.OrderingFilter):
+    def get_ordering(self, request, queryset, *args, **kwargs):
+        # Get the default ordering
+        ordering = super().get_ordering(request, queryset, *args, **kwargs)
+
+        # Filter out ascending orders
+        if ordering:
+            ordering = [o for o in ordering if not o.startswith('-')]
+
+        return ordering

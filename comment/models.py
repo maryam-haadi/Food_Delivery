@@ -11,7 +11,7 @@ class Comment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.user.phone_number
+        return f"customer :{self.user.phone_number} food :{self.food.id}"
 
 
 class CommentRestaurant(models.Model):
@@ -22,7 +22,7 @@ class CommentRestaurant(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.user.phone_number
+        return f"user :{self.user.phone_number} restaurant :{self.restaurant}"
 
 
 

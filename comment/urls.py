@@ -6,11 +6,14 @@ from django.urls import reverse
 
 
 router = DefaultRouter()
-router.register(r'comment',CommentPostViewSet,basename='comment')
-router.register(r'reply',ReplyCommentViewSet,basename='reply')
+router.register(r'comment_food',CommentPostViewSet,basename='comment')
+router.register(r'reply_comment_foods',ReplyCommentViewSet,basename='reply-food')
+router.register(r'comment_restaurant',CommentRestaurantPostViewSet,basename='comment-restaurant')
+router.register(r'reply_comment_restaurant',ReplyCommentRestaurantViewSet,basename='reply-restaurant')
 
 urlpatterns=[
     path('',include(router.urls)),
-    path('show_comments/<int:pk>',ShowFoodComments),
+    path('show_food_comments/<int:pk>',ShowFoodComments),
+    path('show_restaurant_comments/<int:pk>',ShowRestaurantComments),
 ]
 

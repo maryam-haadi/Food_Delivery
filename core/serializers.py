@@ -11,10 +11,11 @@ from cart.serializers import *
 class RestaurantShowSerializer(serializers.ModelSerializer):
 
     is_open = serializers.SerializerMethodField(method_name='get_is_active',read_only=True)
+    average_rating = serializers.SerializerMethodField(method_name='get_average_rating',read_only=True)
     class Meta:
         model = Restaurant
         fields=['id','image','category','delivery_time','min_cart_price','delivery_price'
-            ,'name','phone_number','open_time','close_time','address_name','latitude','longitude','is_open']
+            ,'name','phone_number','open_time','close_time','address_name','latitude','longitude','is_open','average_rating']
 
     def get_is_active(self,restaurant:Restaurant):
 
@@ -32,15 +33,25 @@ class RestaurantShowSerializer(serializers.ModelSerializer):
             representation['image'] = request.build_absolute_uri(instance.image.url)
         return representation
 
+    def get_average_rating(self,obj:Restaurant):
+        ratings = obj.ratings.all()
+        if not ratings:
+            return 0
+        rate = round(sum(rating.stars for rating in ratings)/len(ratings),2)
+        obj.average_rating = rate
+        obj.save()
+        return rate
+
 
 
 class RestaurantListSerializer(serializers.ModelSerializer):
 
     is_open = serializers.SerializerMethodField(method_name='get_is_active',read_only=True)
+    average_rating = serializers.SerializerMethodField(method_name='get_average_rating',read_only=True)
     class Meta:
         model = Restaurant
         fields=['id','image','category','delivery_time','min_cart_price','delivery_price'
-            ,'name','phone_number','open_time','close_time','address_name','latitude','longitude','is_open']
+            ,'name','phone_number','open_time','close_time','address_name','latitude','longitude','is_open','average_rating']
 
     def get_is_active(self,restaurant:Restaurant):
         if datetime.now().time() < restaurant.close_time and datetime.now().time() > restaurant.open_time:
@@ -55,6 +66,15 @@ class RestaurantListSerializer(serializers.ModelSerializer):
         if request and instance.image:
             representation['image'] = request.build_absolute_uri(instance.image.url)
         return representation
+
+    def get_average_rating(self,obj:Restaurant):
+        ratings = obj.ratings.all()
+        if not ratings:
+            return 0
+        rate = round(sum(rating.stars for rating in ratings)/len(ratings),2)
+        obj.average_rating = rate
+        obj.save()
+        return rate
 
 
 
@@ -134,16 +154,19 @@ class FoodSerializer(serializers.ModelSerializer):
 class FoodShowSerializer(serializers.ModelSerializer):
 
     category_name = serializers.CharField(source='food_category.category_name',max_length=200)
-    average_rating = serializers.SerializerMethodField(method_name='get_average_rating')
+    average_rating = serializers.SerializerMethodField(method_name='get_average_rating',read_only=True)
     class Meta:
         model = Food
         fields=['id','image','category_name','name','desc','price','average_rating']
 
-    def get_average_rating(self,obj):
+    def get_average_rating(self,obj:Food):
         ratings = obj.ratings.all()
         if not ratings:
             return 0
-        return round(sum(rating.stars for rating in ratings)/len(ratings),2)
+        rate = round(sum(rating.stars for rating in ratings)/len(ratings),2)
+        obj.average_rating = rate
+        obj.save()
+        return rate
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)

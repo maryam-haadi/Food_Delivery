@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Restaurant_cart,Restaurant_cart_item,Order,Payment
+from .models import Restaurant_cart,Restaurant_cart_item,Order,Payment,ChanceSpining
 # from core.serializers import FoodShowSerializer
 from core.models import *
 import random
@@ -112,6 +112,7 @@ class ShowOrderSerializer(serializers.ModelSerializer):
         for item in cart_items:
             result = item.food.price * item.quantity
             sum += result
+
         return sum
 
 
@@ -157,6 +158,27 @@ class VerifyPaymentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Payment
         fields = ['order_id','origin_card_number','cvv2','daynamic_password','verification']
+
+
+
+
+class ChanceSpiningPostSerializer(serializers.ModelSerializer):
+    order_id = serializers.IntegerField(source='order.id')
+    class Meta:
+        model = ChanceSpining
+        fields = ['order_id']
+
+
+
+class ChanceSpiningShowSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ChanceSpining
+        fields = '__all__'
+
+
+
+
+
 
 
 

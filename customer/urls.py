@@ -10,7 +10,7 @@ router = DefaultRouter()
 router.register(r'restaurants',RestaurantRangeView,basename='restaurants')
 router.register(r'cofes',CofeTypeViewset,basename='cofe')
 router.register(r'restaurants-category',RestaurantsCategoryViewset,basename='restaurants-category')
-router.register(r'favorites',FavoriteListViewset,basename='favorite')
+router.register(r'myfavorites',FavoriteListViewset,basename='favorite')
 
 
 

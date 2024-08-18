@@ -41,7 +41,7 @@ class Order(models.Model):
 
 
     def __str__(self):
-        return f"order customer:{self.restaurant_cart.customer.user.phone_number} - restaurant:{self.restaurant_cart.restaurant.name}"
+        return f"order id:{self.id}   order customer:{self.restaurant_cart.customer.user.phone_number} - restaurant:{self.restaurant_cart.restaurant.name}"
 
 
 
@@ -65,7 +65,15 @@ class Payment(models.Model):
         return f"Payment {self.id} -  price : {self.order.total_price} - for order id : {self.order.id} - with customer : {self.order.restaurant_cart.customer} - from restaurant : {self.order.restaurant_cart.restaurant}"
 
 
+class ChanceSpining(models.Model):
+    customer = models.ForeignKey('account.Customer',on_delete=models.CASCADE,blank=True)
+    order = models.ForeignKey('cart.Order',on_delete=models.CASCADE,blank=True)
+    percentage_discount = models.PositiveIntegerField(blank=True,null=True)
+    amount_discount = models.DecimalField(max_digits=10,decimal_places=2,blank=True,null=True)
+    absurd = models.PositiveIntegerField(blank=True,null=True)
 
+    def __str__(self):
+        return f"customer :{self.customer.user.phone_number} order id :{self.order.id}"
 
 
 

@@ -63,6 +63,7 @@ class Restaurant(models.Model):
     latitude = models.FloatField(default=0)
     longitude = models.FloatField(default=0)
     is_open = models.BooleanField(default=False,blank=True)
+    average_rating = models.FloatField(blank=True,default=None)
 
     def save(self, *args, **kwargs):
         current_time = datetime.now().time()
@@ -137,6 +138,7 @@ class Food(models.Model):
     name = models.CharField(max_length=150,blank=False)
     desc = models.TextField(blank=True)
     price = models.DecimalField(max_digits=10,decimal_places=2,blank=False)
+    average_rating = models.FloatField(blank=True,default=None)
 
     def __str__(self):
         return f"food name : {self.name} with id : {self.id} for restaurant : {self.menu.restaurant.name}"

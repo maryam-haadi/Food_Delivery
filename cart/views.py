@@ -10,6 +10,8 @@ from rest_framework import status
 from rest_framework import generics
 from rest_framework.viewsets import ModelViewSet,GenericViewSet
 from rest_framework import mixins
+from unicodedata import decimal
+
 from .serializers import *
 from .models import *
 from customer.permissions import *
@@ -22,6 +24,7 @@ from rating.models import *
 from rating.serializers import *
 from .serializers import *
 import requests
+from .permissions import *
 # Create your views here.
 
 
@@ -219,14 +222,22 @@ class CartItemNestedViewset(ModelViewSet):
                 cart = instance.restaurant_cart
                 if Restaurant_cart_item.objects.all().filter(restaurant_cart=cart).first() is None:
                     cart.delete()
-                    order = Order.objects.all().filter(restaurant_cart=cart).filter(restaurant_cart__customer__user=request.user).first()
-                    if order is not None:
-                        order.delete()
 
                 return Response({"message":"remove this cart item from your cart"},status=status.HTTP_200_OK)
             else:
                 instance.quantity = quantity
                 instance.save()
+                cart = instance.restaurant_cart
+                if Order.objects.all().filter(restaurant_cart=cart).\
+                    filter(restaurant_cart__customer__user=request.user):
+                    order = get_object_or_404(Order,restaurant_cart=cart)
+                    cart_items = Restaurant_cart_item.objects.all().filter(restaurant_cart=cart)
+                    sum=0
+                    for item in cart_items:
+                        sum+=(item.food.price * item.quantity)
+                    order.total_price = sum + cart.restaurant.delivery_price
+                    order.save()
+
                 return Response({"message": "update quantity of your cartitem"}, status=status.HTTP_200_OK)
 
         else:
@@ -312,14 +323,17 @@ class OrderViewset(ModelViewSet):
             for item in cart_items:
                 total+=item.quantity * item.food.price
 
+            total_price = total +restaurant_cart.restaurant.delivery_price
+
             if total < min_price:
+                print("totalllllllllllllllllll",total)
                 return Response({"message":f"Your minimum purchase must {min_price}"},status=status.HTTP_400_BAD_REQUEST)
             else:
                 customer = Customer.objects.all().filter(user=self.request.user).first()
                 order = Order.objects.create(restaurant_cart_id=self.kwargs['cart_pk'],
                                              delivery_address_name=customer.address_name,
                                              latitude=customer.latitude,
-                                             longitude=customer.longitude)
+                                             longitude=customer.longitude,total_price=total_price)
 
                 serializer = ShowOrderSerializer(instance=order,many=False)
                 return Response({"message":"order for you","data":serializer.data},status=status.HTTP_201_CREATED)
@@ -327,9 +341,15 @@ class OrderViewset(ModelViewSet):
             order = Order.objects.filter(restaurant_cart=self.kwargs['cart_pk'])\
                 .filter(restaurant_cart__customer__user=self.request.user).first()
 
-            total_price = order.total_price
-            delivery_price = order.restaurant_cart.restaurant.delivery_price
-            total_order = total_price - delivery_price
+
+            cart_items = Restaurant_cart_item.objects.all().filter(restaurant_cart__order=order)
+            sum=0
+            for item in cart_items:
+                sum+=(item.food.price * item.quantity)
+
+            order.total_price = sum + order.restaurant_cart.restaurant.delivery_price
+            order.save()
+            total_order = order.total_price - order.restaurant_cart.restaurant.delivery_price
             if total_order < order.restaurant_cart.restaurant.min_cart_price:
                 return Response({"message":f"Your minimum purchase must {order.restaurant_cart.restaurant.min_cart_price}"},status=status.HTTP_400_BAD_REQUEST)
             else:
@@ -494,11 +514,119 @@ class VerifyPaymentViewSet(ModelViewSet):
 
 
 
+class MyOrdersViewset(ModelViewSet):
+
+    http_method_names = ['get']
+    permission_classes = [IsCustomer]
+    serializer_class = ShowOrderSerializer
+
+    def get_queryset(self):
+        return Order.objects.all().filter(restaurant_cart__customer__user=self.request.user).filter(paid=True)
 
 
 
 
+class ChanceSpiningViewset(ModelViewSet):
+    http_method_names = ['post','get']
+    permission_classes = [HaveChance]
 
+    def get_queryset(self):
+        return ChanceSpining.objects.all().filter(customer__user=self.request.user)
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return ChanceSpiningPostSerializer
+        else:
+            return ChanceSpiningShowSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = ChanceSpiningPostSerializer(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            order_id = serializer.validated_data['order']['id']
+            if Order.objects.all().filter(id=order_id).\
+                filter(restaurant_cart__customer__user=request.user).filter(paid=False).exists():
+                order = Order.objects.all().filter(id=order_id).\
+                filter(restaurant_cart__customer__user=request.user).filter(paid=False).first()
+
+                if ChanceSpining.objects.all().filter(order=order).exists():
+                    return Response({"message":"You can use this lucky wheel only once for each order"},status=status.HTTP_400_BAD_REQUEST)
+
+                else:
+                    customer = get_object_or_404(Customer,user=request.user)
+                    chance = ChanceSpining.objects.create(order=order,customer=customer)
+                    dict_chance={"10% discount":10,"20% discount":20,"30% discount":30,"absurd":0,
+                                "5% discount":5,"100,000 tomans discount":100000,
+                                "150,000 tomans discount":150000,"50,000 tomans discount":50000}
+
+                    result = key, val = random.choice(list(dict_chance.items()))
+                    print(result)
+                    if val == 10:
+                        chance.percentage_discount = 10
+                        chance.save()
+
+                        discount = float(order.total_price) * 0.10
+                        order.total_price = (float(order.total_price) - decimal(discount))
+                        order.save()
+                        print(order.total_price)
+
+                    elif val == 20:
+                        chance.percentage_discount = 20
+                        chance.save()
+
+                        discount = float(order.total_price) * 0.20
+                        order.total_price = (float(order.total_price) - discount)
+                        order.save()
+                        print(order.total_price)
+
+                    elif val == 30:
+                        chance.percentage_discount = 30
+                        chance.save()
+
+                        discount = float(order.total_price) * 0.30
+                        order.total_price = (float(order.total_price) - discount)
+                        order.save()
+                        print(order.total_price)
+
+                    elif val == 0:
+                        chance.absurd = 0
+                        chance.save()
+                        print(order.total_price)
+
+                    elif val == 5:
+                        chance.percentage_discount = 5
+                        chance.save()
+
+                        discount = float(order.total_price) * 0.05
+                        order.total_price = (float(order.total_price) - discount)
+                        order.save()
+                        print(order.total_price)
+
+                    elif val == 100000:
+                        chance.amount_discount = 100000
+                        chance.save()
+                        order.total_price = (float(order.total_price) - 100000)
+                        order.save()
+                        print(order.total_price)
+                    elif val == 150000:
+                        chance.amount_discount = 150000
+                        chance.save()
+
+                        order.total_price = (float(order.total_price) - 150000)
+                        order.save()
+                        print(order.total_price)
+                    elif val == 50000:
+                        chance.amount_discount = 50000
+                        chance.save()
+
+                        order.total_price = (float(order.total_price) - 50000)
+                        print(order.total_price)
+                        order.save()
+
+                    return Response({"message":f"You have won {key}"},status=status.HTTP_200_OK)
+            else:
+                return Response({"message":"please enter your correct order id"},status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
 
 
 

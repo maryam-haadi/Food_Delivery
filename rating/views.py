@@ -20,6 +20,8 @@ from rest_framework import filters
 from rating.models import *
 from rating.serializers import *
 from rest_framework.decorators import api_view,permission_classes
+from core.permissions import *
+from customer.permissions import *
 # Create your views here.
 
 class RatingViewSetCustomerSide(GenericViewSet,mixins.CreateModelMixin):
@@ -35,10 +37,17 @@ class RatingViewSetCustomerSide(GenericViewSet,mixins.CreateModelMixin):
             if Rating.objects.filter(user=request.user,food=food).exists():
                 return Response({"error":"you rated this food recently"})
             else:
-                rating=Rating.objects.create(user=request.user,food=food,stars=serializer.data['stars'])
-                return Response({"message":"you rated successfully","data":serializer.data},status=status.HTTP_201_CREATED)
+                 if Order.objects.all().filter(restaurant_cart__cart_items__food=food). \
+                    filter(is_compelete=True).filter(restaurant_cart__customer__user=request.user) \
+                    .first() is not None:
+                    rating=Rating.objects.create(user=request.user,food=food,stars=serializer.data['stars'])
+                    return Response({"message":"you rated successfully","data":serializer.data},status=status.HTTP_201_CREATED)
+                 else:
+                     return Response({"Error message":"You have not ordered this food yet, so you cannot rate it."},status=status.HTTP_400_BAD_REQUEST)
         else:
             return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+
+
 
 @api_view(['get'])
 @permission_classes([IsAuthenticated])
@@ -62,8 +71,13 @@ class RestaurantRatingViewSetCustomerSide(GenericViewSet,mixins.CreateModelMixin
             if RestaurantRating.objects.filter(user=request.user,restaurant=restaurant).exists():
                 return Response({"error":"you rated this restaurant recently"})
             else:
-                rating=RestaurantRating.objects.create(user=request.user,restaurant=restaurant,stars=serializer.data['stars'])
-                return Response({"message":"you rated successfully","data":serializer.data},status=status.HTTP_201_CREATED)
+                if Order.objects.all().filter(restaurant_cart__restaurant=restaurant). \
+                        filter(is_compelete=True).filter(restaurant_cart__customer__user=request.user) \
+                        .first() is not None:
+                    rating=RestaurantRating.objects.create(user=request.user,restaurant=restaurant,stars=serializer.data['stars'])
+                    return Response({"message":"you rated successfully","data":serializer.data},status=status.HTTP_201_CREATED)
+                else:
+                    return Response({"message":"You have never ordered from this restaurant, so you cannot rate this restaurant."},status=status.HTTP_400_BAD_REQUEST)
         else:
             return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
 
@@ -82,8 +96,22 @@ def ShowRestaurantRatings(request,pk):
 
 
 
+class ShowListOfRestaurantRatingsViewset(ModelViewSet):
+    http_method_names = ['get']
+    permission_classes = [IsRestuarantExist]
+    serializer_class = ShowListOfRestaurantRatingsSerializer
+
+    def get_queryset(self):
+        return RestaurantRating.objects.all().filter(restaurant__owner__user=self.request.user)
 
 
+class ShowListOfFoodRatingsViewset(ModelViewSet):
+    http_method_names = ['get']
+    permission_classes = [IsRestuarantExist]
+    serializer_class = ShowListOfFoodRatingsSerializer
+
+    def get_queryset(self):
+        return Rating.objects.all().filter(food__menu__restaurant__owner__user=self.request.user)
 
 
 

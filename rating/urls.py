@@ -9,7 +9,8 @@ from rest_framework_nested import routers
 router = DefaultRouter()
 router.register(r'food_rating',RatingViewSetCustomerSide, basename='rating_post_customerside')
 router.register(r'restaurant_rating',RestaurantRatingViewSetCustomerSide, basename='restaurant_rating_post_customerside')
-
+router.register(r'rates_of_your_menu_foods',ShowListOfFoodRatingsViewset, basename='foods-rates')
+router.register(r'rates_of_your_restaurant',ShowListOfRestaurantRatingsViewset, basename='restaurant-rates')
 
 
 urlpatterns=[
