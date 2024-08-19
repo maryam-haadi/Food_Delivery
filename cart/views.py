@@ -524,6 +524,14 @@ class MyOrdersViewset(ModelViewSet):
         return Order.objects.all().filter(restaurant_cart__customer__user=self.request.user).filter(paid=True)
 
 
+class MyTransactions(ModelViewSet):
+    http_method_names = ['get']
+    permission_classes = [IsCustomer]
+    serializer_class = ShowPaymentsSerializer
+
+    def get_queryset(self):
+        return Payment.objects.all().filter(order__restaurant_cart__customer__user=self.request.user)
+
 
 
 class ChanceSpiningViewset(ModelViewSet):
@@ -565,61 +573,61 @@ class ChanceSpiningViewset(ModelViewSet):
                         chance.save()
 
                         discount = float(order.total_price) * 0.10
-                        order.total_price = (float(order.total_price) - decimal(discount))
+                        order.total_price_after_discount = (float(order.total_price) - discount)
                         order.save()
-                        print(order.total_price)
+                        print(order.total_price_after_discount)
 
                     elif val == 20:
                         chance.percentage_discount = 20
                         chance.save()
 
                         discount = float(order.total_price) * 0.20
-                        order.total_price = (float(order.total_price) - discount)
+                        order.total_price_after_discount = (float(order.total_price) - discount)
                         order.save()
-                        print(order.total_price)
+                        print(order.total_price_after_discount)
 
                     elif val == 30:
                         chance.percentage_discount = 30
                         chance.save()
 
                         discount = float(order.total_price) * 0.30
-                        order.total_price = (float(order.total_price) - discount)
+                        order.total_price_after_discount = (float(order.total_price) - discount)
                         order.save()
-                        print(order.total_price)
+                        print(order.total_price_after_discount)
 
                     elif val == 0:
                         chance.absurd = 0
                         chance.save()
-                        print(order.total_price)
+                        print(order.total_price_after_discount)
 
                     elif val == 5:
                         chance.percentage_discount = 5
                         chance.save()
 
                         discount = float(order.total_price) * 0.05
-                        order.total_price = (float(order.total_price) - discount)
+                        order.total_price_after_discount = (float(order.total_price) - discount)
                         order.save()
-                        print(order.total_price)
+                        print(order.total_price_after_discount)
 
                     elif val == 100000:
                         chance.amount_discount = 100000
                         chance.save()
-                        order.total_price = (float(order.total_price) - 100000)
+                        order.total_price_after_discount = (float(order.total_price) - 100000)
                         order.save()
-                        print(order.total_price)
+                        print(order.total_price_after_discount)
                     elif val == 150000:
                         chance.amount_discount = 150000
                         chance.save()
 
-                        order.total_price = (float(order.total_price) - 150000)
+                        order.total_price_after_discount = (float(order.total_price) - 150000)
                         order.save()
-                        print(order.total_price)
+                        print(order.total_price_after_discount)
                     elif val == 50000:
                         chance.amount_discount = 50000
                         chance.save()
 
-                        order.total_price = (float(order.total_price) - 50000)
-                        print(order.total_price)
+                        order.total_price_after_discount = (float(order.total_price) - 50000)
+                        print(order.total_price_after_discount)
                         order.save()
 
                     return Response({"message":f"You have won {key}"},status=status.HTTP_200_OK)
@@ -631,8 +639,46 @@ class ChanceSpiningViewset(ModelViewSet):
 
 
 
+class DiceChance(ModelViewSet):
+    http_method_names = ['post','get']
+    permission_classes = [HaveChanceDice]
 
 
+    def get_queryset(self):
+        return Dice.objects.all().filter(customer__user=self.request.user)
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return DiceChancePostSerializer
+        else:
+            return DiceChanceShowSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = DiceChancePostSerializer(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            order_id = serializer.validated_data['order']['id']
+            order = get_object_or_404(Order,id=order_id)
+
+            if Dice.objects.all().filter(order=order).filter(customer__user=request.user).exists():
+                return Response({"message":"You can throw dice only once for each order sorry ):"},status=status.HTTP_400_BAD_REQUEST)
+            else:
+                if Order.objects.all().filter(id=order_id).\
+                    filter(restaurant_cart__customer__user=request.user).filter(paid=False).first() is not None :
+                    dice1 = random.choice([1,2,3,4,5,6])
+                    dice2 = random.choice([1,2,3,4,5,6])
+                    customer = get_object_or_404(Customer,user=request.user)
+                    dice = Dice.objects.create(order=order,dice1=dice1,dice2=dice2,customer=customer)
+                    if dice1 == 6 and dice2 == 6:
+                        order.total_price_after_discount = order.total_price - order.restaurant_cart.restaurant.delivery_price
+                        order.save()
+                        return Response({"result":f"dice1 : {dice1}  dice2 : {dice2}","message":f"Sending order with id {order_id} is free for you (:"},status=status.HTTP_201_CREATED)
+                    else:
+                        return Response({"result":f"dice1 : {dice1}  dice2 : {dice2}","message":f"sorry ):"},status=status.HTTP_201_CREATED)
+
+                else:
+                    return Response({"message":"Please enter an order ID that is not paid for you and is currently active."},status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
 
 
 

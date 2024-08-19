@@ -12,7 +12,8 @@ router.register(r'payment',CreatePaymentViewSet,basename='payment')
 router.register(r'verifypayment',VerifyPaymentViewSet,basename='verify-payment')
 router.register(r'myorders',MyOrdersViewset,basename='myorders')
 router.register(r'chance_spining',ChanceSpiningViewset,basename='chance')
-
+router.register(r'my_transactions',MyTransactions,basename='transactions')
+router.register(r'chance_Dice',DiceChance,basename='chance-dice')
 
 cart_cartitem_router=routers.NestedDefaultRouter(router,'carts',lookup='cart')
 cart_cartitem_router.register(r'items',CartItemNestedViewset,basename='cart-item')

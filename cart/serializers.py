@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Restaurant_cart,Restaurant_cart_item,Order,Payment,ChanceSpining
+from .models import *
 # from core.serializers import FoodShowSerializer
 from core.models import *
 import random
@@ -101,7 +101,7 @@ class ShowOrderSerializer(serializers.ModelSerializer):
     detail = serializers.SerializerMethodField(method_name='get_details',read_only=True)
     class Meta:
         model = Order
-        fields = ['id','delivery_price','total_order','total_price','delivery_address_name','latitude','longitude','detail','paid']
+        fields = ['id','delivery_price','total_order','total_price','total_price_after_discount','delivery_address_name','latitude','longitude','detail','paid']
 
 
     def get_delivery_price(self,obj:Order):
@@ -176,6 +176,30 @@ class ChanceSpiningShowSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class ShowPaymentsSerializer(serializers.ModelSerializer):
+
+    order = ShowOrderSerializer()
+    class Meta:
+        model = Payment
+        fields = ['id','order','origin_card_number','created_at']
+
+
+
+
+class DiceChancePostSerializer(serializers.ModelSerializer):
+    order_id = serializers.IntegerField(source='order.id')
+
+
+    class Meta:
+        model = Dice
+        fields = ['order_id']
+
+
+class DiceChanceShowSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Dice
+        fields = '__all__'
 
 
 
