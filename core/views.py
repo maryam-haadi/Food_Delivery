@@ -193,7 +193,7 @@ class FoodCategoryViewset(ModelViewSet):
 
 url = "https://rest.payamak-panel.com/api/SendSMS/SendSMS"
 class RestaurantsOrderViewset(ModelViewSet):
-    http_method_names = ['get','delete','put']
+    http_method_names = ['get','put']
     permission_classes = [IsRestuarantExist]
 
     def get_queryset(self):
