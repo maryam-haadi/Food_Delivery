@@ -85,13 +85,16 @@ class CartViewset(ModelViewSet):
             return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
 
 
-    def __delete__(self, instance):
-        instance.delete()
-        order = Order.objects.all().filter(restaurant_cart=instance)\
+
+    def destroy(self, request,pk, *args, **kwargs):
+        cart = get_object_or_404(Restaurant_cart,pk=pk)
+        order = Order.objects.all().filter(restaurant_cart=cart)\
             .filter(restaurant_cart__customer__user=self.request.user).first()
         if order is not None:
             order.delete()
+        cart.delete()
         return Response({"message":"delete cart secsessfully"},status=status.HTTP_204_NO_CONTENT)
+
 
 
 
@@ -289,7 +292,7 @@ class OrderViewset(ModelViewSet):
                         order.save()
                 else:
                     order.total_price_after_discount=None
-                    dice.delete()
+                    # dice.delete()
                     order.save()
 
             elif ChanceSpining.objects.all().filter(customer__user=request.user).filter(order=order).exists():
@@ -307,7 +310,7 @@ class OrderViewset(ModelViewSet):
                         order.save()
                 else:
                     order.total_price_after_discount = None
-                    chance.delete()
+                    # chance.delete()
                     order.save()
 
             else:
@@ -455,6 +458,41 @@ class VerifyPaymentViewSet(ModelViewSet):
                      payment.order.save()
                      payment.save()
 
+                     price = payment.order.total_price
+
+                     scores = 0
+
+
+                     if 200000< price <=100000:
+                         scores = 10
+
+                     elif 300000 < price <= 200000:
+                         scores = 20
+
+                     elif 400000 < price <= 300000:
+                         scores = 30
+                     elif 500000 < price <= 400000:
+                         scores = 40
+                     elif 600000 < price <= 500000:
+                         scores = 50
+                     elif 700000 < price <= 600000:
+                         scores = 60
+                     elif 800000 < price <= 700000:
+                         scores = 70
+                     elif 900000 < price <= 800000:
+                         scores = 80
+                     elif 1000000 < price <= 900000:
+                         scores = 90
+                     elif price >= 1000000:
+                         scores = 100
+
+                     payment.order.restaurant_cart.customer.score += scores
+                     payment.order.restaurant_cart.customer.save()
+                     payment.order.restaurant_cart.save()
+                     payment.order.save()
+                     payment.save()
+
+
                      message = f"You have an order from the customer with phone number  {payment.order.restaurant_cart.customer.user.phone_number}"
                      payload = {
                          'username': '989116968310',
@@ -479,14 +517,68 @@ class VerifyPaymentViewSet(ModelViewSet):
 
 
 
+
+
+
 class MyOrdersViewset(ModelViewSet):
 
-    http_method_names = ['get']
+    http_method_names = ['get','delete']
     permission_classes = [IsCustomer]
     serializer_class = ShowOrderSerializer
 
     def get_queryset(self):
         return Order.objects.all().filter(restaurant_cart__customer__user=self.request.user).filter(paid=True)
+
+    def __delete__(self, instance):
+        if datetime.now().time() < instance.created_at + timedelta(minutes=10):
+            instance.delete()
+            return Response({"message":"Your order has been cancelled !"},status=status.HTTP_204_NO_CONTENT)
+        else:
+            return Response({"message":"sorry!"},status=status.HTTP_400_BAD_REQUEST)
+
+
+    def destroy(self, request,pk, *args, **kwargs):
+        order = get_object_or_404(Order,pk=pk)
+        if order.owner_approval ==  False:
+            price = order.total_price
+            scores = 0
+            if 200000 < price <= 100000:
+                scores = 10
+
+            elif 300000 < price <= 200000:
+                scores = 20
+
+            elif 400000 < price <= 300000:
+                scores = 30
+            elif 500000 < price <= 400000:
+                scores = 40
+            elif 600000 < price <= 500000:
+                scores = 50
+            elif 700000 < price <= 600000:
+                scores = 60
+            elif 800000 < price <= 700000:
+                scores = 70
+            elif 900000 < price <= 800000:
+                scores = 80
+            elif 1000000 < price <= 900000:
+                scores = 90
+            elif price >= 1000000:
+                scores = 100
+
+            order.restaurant_cart.customer.score -= scores
+            order.restaurant_cart.customer.save()
+            order.restaurant_cart.save()
+            order.save()
+            order.delete()
+
+            return Response({"message":"Your order has been cancelled !"},status=status.HTTP_204_NO_CONTENT)
+        else:
+            return Response({"message":"sorry!"},status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+
 
 
 class MyTransactions(ModelViewSet):
@@ -496,6 +588,9 @@ class MyTransactions(ModelViewSet):
 
     def get_queryset(self):
         return Payment.objects.all().filter(order__restaurant_cart__customer__user=self.request.user)
+
+
+
 
 
 
@@ -547,6 +642,10 @@ class ChanceSpiningViewset(ModelViewSet):
                             discount = float(order.total_price) * 0.10
                             order.total_price_after_discount = (float(order.total_price) - discount)
                             order.save()
+                            order.restaurant_cart.customer.score -= 100
+                            order.restaurant_cart.customer.save()
+                            order.restaurant_cart.save()
+                            order.save()
                             print(order.total_price_after_discount)
 
                         elif val == 20:
@@ -556,6 +655,12 @@ class ChanceSpiningViewset(ModelViewSet):
                             discount = float(order.total_price) * 0.20
                             order.total_price_after_discount = (float(order.total_price) - discount)
                             order.save()
+
+                            order.restaurant_cart.customer.score -= 100
+                            order.restaurant_cart.customer.save()
+                            order.restaurant_cart.save()
+                            order.save()
+
                             print(order.total_price_after_discount)
 
                         elif val == 30:
@@ -565,11 +670,21 @@ class ChanceSpiningViewset(ModelViewSet):
                             discount = float(order.total_price) * 0.30
                             order.total_price_after_discount = (float(order.total_price) - discount)
                             order.save()
+
+                            order.restaurant_cart.customer.score -= 100
+                            order.restaurant_cart.customer.save()
+                            order.restaurant_cart.save()
+                            order.save()
                             print(order.total_price_after_discount)
 
                         elif val == 0:
                             chance.absurd = 0
                             chance.save()
+
+                            order.restaurant_cart.customer.score -= 100
+                            order.restaurant_cart.customer.save()
+                            order.restaurant_cart.save()
+                            order.save()
                             print(order.total_price_after_discount)
 
                         elif val == 5:
@@ -579,12 +694,22 @@ class ChanceSpiningViewset(ModelViewSet):
                             discount = float(order.total_price) * 0.05
                             order.total_price_after_discount = (float(order.total_price) - discount)
                             order.save()
+
+                            order.restaurant_cart.customer.score -= 100
+                            order.restaurant_cart.customer.save()
+                            order.restaurant_cart.save()
+                            order.save()
                             print(order.total_price_after_discount)
 
                         elif val == 100000:
                             chance.amount_discount = 100000
                             chance.save()
                             order.total_price_after_discount = (float(order.total_price) - 100000)
+                            order.save()
+
+                            order.restaurant_cart.customer.score -= 100
+                            order.restaurant_cart.customer.save()
+                            order.restaurant_cart.save()
                             order.save()
                             print(order.total_price_after_discount)
                         elif val == 150000:
@@ -593,6 +718,11 @@ class ChanceSpiningViewset(ModelViewSet):
 
                             order.total_price_after_discount = (float(order.total_price) - 150000)
                             order.save()
+
+                            order.restaurant_cart.customer.score -= 100
+                            order.restaurant_cart.customer.save()
+                            order.restaurant_cart.save()
+                            order.save()
                             print(order.total_price_after_discount)
                         elif val == 50000:
                             chance.amount_discount = 50000
@@ -600,6 +730,11 @@ class ChanceSpiningViewset(ModelViewSet):
 
                             order.total_price_after_discount = (float(order.total_price) - 50000)
                             print(order.total_price_after_discount)
+                            order.save()
+
+                            order.restaurant_cart.customer.score -= 100
+                            order.restaurant_cart.customer.save()
+                            order.restaurant_cart.save()
                             order.save()
 
                         return Response({"message":f"You have won {key}"},status=status.HTTP_200_OK)
@@ -646,6 +781,11 @@ class DiceChance(ModelViewSet):
                     dice2 = random.choice([1,2,3,4,5,6])
                     customer = get_object_or_404(Customer,user=request.user)
                     dice = Dice.objects.create(order=order,dice1=dice1,dice2=dice2,customer=customer)
+                    order.restaurant_cart.customer.score -= 100
+                    order.restaurant_cart.customer.save()
+                    order.restaurant_cart.save()
+                    order.save()
+
                     if dice1 == 6 and dice2 == 6:
                         order.total_price_after_discount = order.total_price - order.restaurant_cart.restaurant.delivery_price
                         order.save()

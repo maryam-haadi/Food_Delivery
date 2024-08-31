@@ -115,6 +115,13 @@ class FoodViewset(ModelViewSet):
         else:
             return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
 
+    def destroy(self, request,pk, *args, **kwargs):
+        food = get_object_or_404(Food,pk=pk)
+        if Order.objects.all().filter(paid=False).filter(restaurant_cart__cart_items__food=food).exists():
+            return Response({"message":"yo cant delete this food."},status=status.HTTP_400_BAD_REQUEST)
+        else:
+            food.delete()
+            return Response({"message":"food deleted successfully. "},status=status.HTTP_204_NO_CONTENT)
 
 
 

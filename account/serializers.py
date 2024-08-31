@@ -3,6 +3,7 @@ from django.shortcuts import render,get_object_or_404
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.response import Response
 from customer.serializers import *
+from .models import *
 
 class UserRegisterSerializer(serializers.ModelSerializer):
     class Meta:
@@ -41,8 +42,8 @@ class UserSerializer(serializers.ModelSerializer):
 class CustomerProfileSerializer(serializers.ModelSerializer):
     user= UserSerializer()
     class Meta:
-        model=Customer
-        fields=['id','user','address_name','latitude','longitude']
+        model = Customer
+        fields=['id','user','address_name','latitude','longitude','score']
 
 class CustomerAddressShowSerializer(serializers.ModelSerializer):
     class Meta:

@@ -55,6 +55,9 @@ class RestaurantRangeView(ModelViewSet):
         c = 2 * asin(sqrt(a))
         distance = earth_radius * c
         return distance
+
+
+
     def list(self, request, *args, **kwargs):
         nearby_restaurant =[]
         distances=[]

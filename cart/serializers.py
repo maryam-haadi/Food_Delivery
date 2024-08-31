@@ -2,6 +2,7 @@ from rest_framework import serializers
 from .models import *
 # from core.serializers import FoodShowSerializer
 from core.models import *
+from account.models import *
 import random
 
 
@@ -99,9 +100,10 @@ class ShowOrderSerializer(serializers.ModelSerializer):
     total_price = serializers.SerializerMethodField(method_name='get_total_price',read_only=True)
     total_order = serializers.SerializerMethodField(method_name='get_total_order',read_only=True)
     detail = serializers.SerializerMethodField(method_name='get_details',read_only=True)
+    status = serializers.SerializerMethodField(method_name='get_status',read_only=True)
     class Meta:
         model = Order
-        fields = ['id','delivery_price','total_order','total_price','total_price_after_discount','delivery_address_name','latitude','longitude','detail','paid']
+        fields = ['id','delivery_price','total_order','total_price','total_price_after_discount','delivery_address_name','latitude','longitude','detail','paid','status']
 
 
     def get_delivery_price(self,obj:Order):
@@ -135,6 +137,15 @@ class ShowOrderSerializer(serializers.ModelSerializer):
             food_list.append(f"food : {item.food.name} - quantity : {item.quantity} - price : {item.food.price * item.quantity}")
         return food_list
 
+
+    def get_status(self,obj:Order):
+        message = ""
+        if obj.paid == True:
+            message = "سفارش کامل شده است."
+        else:
+            message = "سفارش هم اکنون فعال است."
+
+        return  message
 
 
 class UpdateOrderAddressSerializer(serializers.ModelSerializer):
@@ -200,7 +211,6 @@ class DiceChanceShowSerializer(serializers.ModelSerializer):
     class Meta:
         model = Dice
         fields = '__all__'
-
 
 
 

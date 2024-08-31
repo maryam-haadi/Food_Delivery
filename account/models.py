@@ -106,6 +106,7 @@ class Customer(models.Model):
     address_name = models.CharField(max_length=200,blank=True,null=True)
     latitude = models.FloatField(blank=True,null=True)
     longitude = models.FloatField(blank=True,null=True)
+    score = models.BigIntegerField(blank=True,null=True,default=0)
 
     def __str__(self):
         return self.user.phone_number

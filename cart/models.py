@@ -46,8 +46,31 @@ class Order(models.Model):
 
 
 
+    def save(self, *args, **kwargs):
+
+        cart = self.restaurant_cart
+        items = Restaurant_cart_item.objects.all().filter(restaurant_cart=cart).filter(restaurant_cart__customer=cart.customer)
+        sum=0
+        for item in items:
+            sum += (item.food.price * item.quantity)
+        self.total_price = sum + cart.restaurant.delivery_price
+        super(Order, self).save(*args, **kwargs)
+
+    def create(self,*args,**kwargs):
+
+        cart = self.restaurant_cart
+        items = Restaurant_cart_item.objects.all().filter(restaurant_cart=cart).filter(restaurant_cart__customer=cart.customer)
+        sum=0
+        for item in items:
+            sum += (item.food.price * item.quantity)
+        self.total_price = sum + cart.restaurant.delivery_price
+
+        super(Order, self).create(*args, **kwargs)
+
+
+
 class Payment(models.Model):
-    order = models.ForeignKey('Order',on_delete=models.PROTECT,blank=True)
+    order = models.ForeignKey('Order',on_delete=models.CASCADE,blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     origin_card_number = models.CharField(max_length=16,blank=True)
     cvv2 = models.CharField(max_length=20,blank=True)
@@ -58,12 +81,31 @@ class Payment(models.Model):
     is_complete = models.BooleanField(default=False,blank=True)
 
 
+
+
+
     class Meta:
         unique_together = ('order','origin_card_number')
 
 
     def __str__(self):
         return f"Payment {self.id} -  price : {self.order.total_price} - for order id : {self.order.id} - with customer : {self.order.restaurant_cart.customer} - from restaurant : {self.order.restaurant_cart.restaurant}"
+
+
+    def save(self, *args, **kwargs):
+
+        self.order.paid = True
+        self.order.is_compelete = True
+        self.order.restaurant_cart.is_compelete = True
+        self.order.restaurant_cart.save()
+        self.order.save()
+        self.is_complete = True
+
+        super(Payment, self).save(*args, **kwargs)
+
+
+
+
 
 
 class ChanceSpining(models.Model):
