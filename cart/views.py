@@ -32,7 +32,7 @@ from .permissions import *
 
 class CartViewset(ModelViewSet):
     permission_classes = [IsCustomer]
-    http_method_names = ['get','delete','post']
+    http_method_names = ['get','delete']
 
     def get_distance(self,user_lat, user_long, res_lat, res_long):
 
@@ -60,29 +60,29 @@ class CartViewset(ModelViewSet):
     def get_queryset(self):
         return Restaurant_cart.objects.all().filter(customer__user=self.request.user).filter(is_compelete=False)
 
-    def create(self, request, *args, **kwargs):
-        serializer = CartPostSerializer(data=request.data)
-        if serializer.is_valid(raise_exception=True):
-            res_id = serializer.validated_data['restaurant']['id']
-            restaurant = get_object_or_404(Restaurant,id=res_id)
-            customer = get_object_or_404(Customer,user=request.user)
-            if Restaurant_cart.objects.all().filter(customer=customer).filter(restaurant=restaurant).filter(is_compelete=False).first() is None:
-                if customer.address_name is None or customer.latitude is None or customer.longitude is None:
-                    return Response({"error message":"Please select your address first"},status=status.HTTP_400_BAD_REQUEST)
-                else:
-                    dist = self.get_distance(customer.longitude,customer.longitude,restaurant.latitude,restaurant.longitude)
-                    if dist > 5000:
-                        return Response({"message":"This restaurant is not within your address range"},status=status.HTTP_400_BAD_REQUEST)
-                    else:
-                        if (datetime.now().time() < restaurant.close_time and datetime.now().time() > restaurant.open_time) or restaurant.is_open==True:
-                            cart = Restaurant_cart.objects.create(customer=customer,restaurant=restaurant)
-                            return Response({"message":"this cart created successfully"},status=status.HTTP_201_CREATED)
-                        else:
-                            return Response({"message":"The restaurant is closed"},status=status.HTTP_400_BAD_REQUEST)
-            else:
-                return Response({"message":"this cart already exist"})
-        else:
-            return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+    # def create(self, request, *args, **kwargs):
+    #     serializer = CartPostSerializer(data=request.data)
+    #     if serializer.is_valid(raise_exception=True):
+    #         res_id = serializer.validated_data['restaurant']['id']
+    #         restaurant = get_object_or_404(Restaurant,id=res_id)
+    #         customer = get_object_or_404(Customer,user=request.user)
+    #         if Restaurant_cart.objects.all().filter(customer=customer).filter(restaurant=restaurant).filter(is_compelete=False).first() is None:
+    #             if customer.address_name is None or customer.latitude is None or customer.longitude is None:
+    #                 return Response({"error message":"Please select your address first"},status=status.HTTP_400_BAD_REQUEST)
+    #             else:
+    #                 dist = self.get_distance(customer.longitude,customer.longitude,restaurant.latitude,restaurant.longitude)
+    #                 if dist > 5000:
+    #                     return Response({"message":"This restaurant is not within your address range"},status=status.HTTP_400_BAD_REQUEST)
+    #                 else:
+    #                     if (datetime.now().time() < restaurant.close_time and datetime.now().time() > restaurant.open_time) or restaurant.is_open==True:
+    #                         cart = Restaurant_cart.objects.create(customer=customer,restaurant=restaurant)
+    #                         return Response({"message":"this cart created successfully"},status=status.HTTP_201_CREATED)
+    #                     else:
+    #                         return Response({"message":"The restaurant is closed"},status=status.HTTP_400_BAD_REQUEST)
+    #         else:
+    #             return Response({"message":"this cart already exist"})
+    #     else:
+    #         return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
 
 
 
@@ -177,6 +177,161 @@ class CartItemNestedViewset(ModelViewSet):
 
         else:
             return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+
+class CartItemViewset(ModelViewSet):
+    permission_classes = [IsCustomer]
+    http_method_names = ['post','get','put']
+
+
+    def get_distance(self,user_lat, user_long, res_lat, res_long):
+
+        earth_radius = 6371
+
+        user_lat = radians(user_lat)
+        user_long = radians(user_long)
+        restaurant_lat = radians(res_lat)
+        restaurant_long = radians(res_long)
+        dlon = restaurant_long - user_long
+        dlat = restaurant_lat - user_lat
+        a = sin(dlat / 2) * sin(dlat / 2) + cos(user_lat) * cos(restaurant_lat) * sin(dlon / 2) * sin(dlon / 2)
+        c = 2 * asin(sqrt(a))
+        distance = earth_radius * c
+        return distance
+
+
+
+
+
+
+    def get_queryset(self):
+        return Restaurant_cart_item.objects.all().filter(restaurant_cart__customer__user = self.request.user).filter(restaurant_cart__is_compelete=False)
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return Addcartitemserializer
+        elif self.request.method == 'GET':
+            return Showcartitemserializer
+        else:
+            return Updatecartitemserializer
+
+
+    def create(self, request, *args, **kwargs):
+        serializer = Addcartitemserializer(data = request.data)
+        if serializer.is_valid(raise_exception=True):
+            food_id = serializer.validated_data['food']['pk']
+            food = get_object_or_404(Food,id=food_id)
+
+            foods = Food.objects.all().filter(menu__restaurant=food.menu.restaurant)
+
+            restaurant = food.menu.restaurant
+            customer = get_object_or_404(Customer,user=request.user)
+
+
+            if customer.address_name is None or customer.latitude is None or customer.longitude is None:
+                return Response({"error message":"Please select your address first"},status=status.HTTP_400_BAD_REQUEST)
+            else:
+                dist = self.get_distance(customer.longitude,customer.longitude,restaurant.latitude,restaurant.longitude)
+                if dist > 5000:
+                    return Response({"message":"This restaurant is not within your address range"},status=status.HTTP_400_BAD_REQUEST)
+                else:
+                    if (datetime.now().time() < restaurant.close_time and datetime.now().time() > restaurant.open_time) or restaurant.is_open==True:
+                        if Restaurant_cart.objects.all().filter(customer__user=request.user).filter(
+                                restaurant=food.menu.restaurant). \
+                                filter(is_compelete=False).first() is not None:
+                            cart = Restaurant_cart.objects.all().filter(customer__user=request.user).filter(
+                                restaurant=food.menu.restaurant). \
+                                filter(is_compelete=False).first()
+
+                        else:
+                            customer = get_object_or_404(Customer, user=request.user)
+                            cart = Restaurant_cart.objects.create(customer=customer, restaurant=food.menu.restaurant)
+
+                    else:
+                        return Response({"message":"The restaurant is closed"},status=status.HTTP_400_BAD_REQUEST)
+
+
+            if food in foods:
+                if Restaurant_cart_item.objects.all().filter(restaurant_cart=cart).filter(food=food).first() is None:
+                    restaurant_cart_item = Restaurant_cart_item.objects.create(restaurant_cart=cart,food=food)
+                    return Response({"message":"created succsesfully","data":serializer.data},status=status.HTTP_201_CREATED)
+                else:
+                    item = Restaurant_cart_item.objects.all().filter(restaurant_cart=cart).filter(food=food).first()
+                    item.quantity += 1
+                    item.save()
+
+                    return Response({"message": "quantity of food plus one"},status=status.HTTP_200_OK)
+            else:
+                return Response({"message":"Please note that this food is not available in this restaurant"},status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+    def update(self,request,pk,**kwargs):
+        instance = get_object_or_404(Restaurant_cart_item,pk=pk)
+        serializer = Updatecartitemserializer(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            quantity = serializer.validated_data['quantity']
+            if quantity == 0:
+                instance.delete()
+                cart = instance.restaurant_cart
+                if Restaurant_cart_item.objects.all().filter(restaurant_cart=cart).first() is None:
+                    cart.delete()
+
+                return Response({"message":"remove this cart item from your cart"},status=status.HTTP_200_OK)
+            else:
+                instance.quantity = quantity
+                instance.save()
+                cart = instance.restaurant_cart
+                if Order.objects.all().filter(restaurant_cart=cart).\
+                    filter(restaurant_cart__customer__user=request.user):
+                    order = get_object_or_404(Order,restaurant_cart=cart)
+                    cart_items = Restaurant_cart_item.objects.all().filter(restaurant_cart=cart)
+                    sum=0
+                    for item in cart_items:
+                        sum+=(item.food.price * item.quantity)
+                    order.total_price = sum + cart.restaurant.delivery_price
+                    order.save()
+
+                return Response({"message": "update quantity of your cartitem"}, status=status.HTTP_200_OK)
+
+        else:
+            return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

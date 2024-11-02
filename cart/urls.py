@@ -8,6 +8,7 @@ from django.urls import reverse
 router = DefaultRouter()
 # router.register(r'add_cart_items',CartItemViewset,basename='cart_item')
 router.register(r'carts',CartViewset,basename='carts')
+router.register(r'cart_item',CartItemViewset,basename='cart_item')
 router.register(r'payment',CreatePaymentViewSet,basename='payment')
 router.register(r'verifypayment',VerifyPaymentViewSet,basename='verify-payment')
 router.register(r'myorders',MyOrdersViewset,basename='myorders')
