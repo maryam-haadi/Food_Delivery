@@ -4,6 +4,7 @@ from .models import *
 from core.models import *
 from account.models import *
 import random
+from django.conf import settings
 
 
 class FoodShowSerializer(serializers.ModelSerializer):
@@ -101,6 +102,7 @@ class ShowOrderSerializer(serializers.ModelSerializer):
     total_order = serializers.SerializerMethodField(method_name='get_total_order',read_only=True)
     detail = serializers.SerializerMethodField(method_name='get_details',read_only=True)
     status = serializers.SerializerMethodField(method_name='get_status',read_only=True)
+
     class Meta:
         model = Order
         fields = ['id','delivery_price','total_order','total_price','total_price_after_discount','delivery_address_name','latitude','longitude','detail','paid','status']
@@ -133,9 +135,18 @@ class ShowOrderSerializer(serializers.ModelSerializer):
     def get_details(self,obj:Order):
         cart_items = Restaurant_cart_item.objects.all().filter(restaurant_cart=obj.restaurant_cart)
         food_list = []
+
         for item in cart_items:
-            food_list.append(f"food : {item.food.name} - quantity : {item.quantity} - price : {item.food.price * item.quantity}")
+            if item.food.image:
+
+                food_image_url = f'http://localhost:8000{item.food.image.url}'
+            else:
+                food_image_url = None
+            food_list.append(f"food : {item.food.name} - quantity : {item.quantity} - price : {item.food.price * item.quantity} - image: {food_image_url}")
         return food_list
+
+
+
 
 
     def get_status(self,obj:Order):
